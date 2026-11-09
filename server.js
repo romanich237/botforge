@@ -4,9 +4,12 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { validate, checkShape, defaults } = require('./project');
 const { generate, archive } = require('./exporter');
+const { createAssistant } = require('./assistant');
 
-function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, 'data')) {
-  const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/canvas.js': ['canvas.js', 'text/javascript; charset=utf-8'], '/canvas.css': ['canvas.css', 'text/css; charset=utf-8'], '/guide.js': ['guide.js', 'text/javascript; charset=utf-8'], '/runtime.js': ['runtime.js', 'text/javascript; charset=utf-8'], '/preview.js': ['preview.js', 'text/javascript; charset=utf-8'], '/languages.js': ['languages.js', 'text/javascript; charset=utf-8'] };
+function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, 'data'), options = {}) {
+  const assistant = createAssistant(options.ai);
+  const publicOrigin = options.publicOrigin ?? process.env.PUBLIC_ORIGIN;
+  const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/canvas.js': ['canvas.js', 'text/javascript; charset=utf-8'], '/canvas.css': ['canvas.css', 'text/css; charset=utf-8'], '/guide.js': ['guide.js', 'text/javascript; charset=utf-8'], '/runtime.js': ['runtime.js', 'text/javascript; charset=utf-8'], '/preview.js': ['preview.js', 'text/javascript; charset=utf-8'], '/languages.js': ['languages.js', 'text/javascript; charset=utf-8'], '/layout.js': ['layout.js', 'text/javascript; charset=utf-8'], '/ai.js': ['ai.js', 'text/javascript; charset=utf-8'] };
   // shortcut: single local server, use a transactional database before multiple instances.
   let queue = Promise.resolve();
   async function load(id) {
@@ -33,7 +36,8 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, 'da
         return res.end(await fs.readFile(path.join(__dirname, 'public', entry[0])));
       }
       if (!['GET', 'POST', 'PUT', 'DELETE'].includes(req.method)) return send(405, { message: 'Метод не поддерживается' });
-      if (req.headers.origin && req.headers.origin !== 'http://' + req.headers.host) return send(403, { message: 'Недопустимый источник запроса' });
+      if (req.headers.origin && req.headers.origin !== (publicOrigin || 'http://' + req.headers.host)) return send(403, { message: 'Недопустимый источник запроса' });
+      if (url.pathname === '/api/ai/status' && req.method === 'GET') return send(200, assistant.status());
       let body;
       if (['POST', 'PUT'].includes(req.method)) {
         if (!req.headers['content-type']?.startsWith('application/json')) return send(415, { message: 'Ожидается application/json' });
@@ -41,9 +45,13 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, 'da
         for await (const chunk of req) { size += chunk.length; if (size > 1024 * 1024) return send(413, { message: 'Проект превышает 1 МБ' }); chunks.push(chunk); }
         try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return send(400, { message: 'Некорректный JSON' }); }
       }
-      const match = url.pathname.match(/^\/api\/projects(?:\/([a-f0-9-]{36})(?:\/(duplicate|validate|export(?:\/zip)?))?)?$/);
+      const match = url.pathname.match(/^\/api\/projects(?:\/([a-f0-9-]{36})(?:\/(ai|duplicate|validate|export(?:\/zip)?))?)?$/);
       if (!match) return send(404, { message: 'Не найдено' });
       const [, id, action] = match;
+      if (id && action === 'ai' && req.method === 'POST') {
+        await load(id);
+        return send(200, await assistant.generate(body?.project, body?.prompt));
+      }
       const run = async () => {
         if (!id && req.method === 'GET') {
           await fs.mkdir(dataDir, { recursive: true });

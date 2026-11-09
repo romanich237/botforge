@@ -1,0 +1,26 @@
+[Unit]
+Description=BotForge bot constructor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=botforge
+Group=botforge
+WorkingDirectory=/opt/botforge/app
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/botforge.env
+ExecStart=/usr/local/bin/node server.js
+Restart=on-failure
+RestartSec=3
+StateDirectory=botforge
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/botforge
+
+[Install]
+WantedBy=multi-user.target

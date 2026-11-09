@@ -59,3 +59,18 @@ test('validation reports commands, variables, branches and unreachable blocks', 
   assert(checkShape({ ...p, edges: [{ id: 'e', source: 's', output: 'made-up', target: 't' }] }));
   assert(checkShape({ ...p, nodes: [{ id: 'b', type: 'buttons', x: 0, y: 0, data: { buttons: [null] } }] }));
 });
+
+test('HTTPS deployment origin and AI endpoints preserve unsaved drafts', async t => {
+ const { example }=require('../public/guide');const { randomUUID }=require('node:crypto');
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'botforge-https-'));
+ const draft={...defaults(),...example(randomUUID)};
+ const server=createServer(dir,{publicOrigin:'https://botforge.example',ai:{key:'test',cooldown:0,fetch:async()=>Response.json({choices:[{message:{content:JSON.stringify(draft)}}]})}});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(async()=>{await new Promise(r=>server.close(r));await fs.rm(dir,{recursive:true,force:true});});
+ const base='http://127.0.0.1:'+server.address().port;
+ const post=(url,body,origin='https://botforge.example')=>fetch(base+url,{method:'POST',headers:{'Content-Type':'application/json',Origin:origin},body:JSON.stringify(body)});
+ const created=await post('/api/projects',{name:'Remote'});assert.equal(created.status,201);const p=await created.json();
+ assert.equal((await post('/api/projects',{name:'Bad'},'https://evil.example')).status,403);
+ const result=await post('/api/projects/'+p.id+'/ai',{project:p,prompt:'Создай меню'});assert.equal(result.status,200);assert.equal((await result.json()).nodes.length,4);
+ assert.equal((await(await fetch(base+'/api/projects/'+p.id)).json()).nodes.length,0);
+ const status=await(await fetch(base+'/api/ai/status')).json();assert.equal(status.configured,true);assert.equal(status.key,undefined);
+});
