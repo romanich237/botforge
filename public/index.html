@@ -4,7 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BotForge · Проекты</title>
+  <link rel="stylesheet" href="/canvas.css">
   <link rel="stylesheet" href="/style.css">
+  <script defer src="/canvas.js"></script>
+  <script defer src="/guide.js"></script>
   <script defer src="/app.js"></script>
 </head>
 <body>
@@ -18,16 +21,17 @@
       <a href="#testing" data-page="testing"><span>▷</span> Тестирование</a>
       <a href="#export" data-page="export"><span>↓</span> Экспорт</a>
       <a href="#settings" data-page="settings"><span>⚙</span> Настройки</a>
+      <a href="#guide" data-page="guide"><span>?</span> Как пользоваться</a>
     </nav>
-    <div class="sidebar-note"><span class="dot"></span> Первый этап <small>Интерфейс и проекты</small></div>
+    <div class="sidebar-note"><span class="dot"></span> Рабочее пространство <small>Telegram · первая версия</small></div>
   </aside>
   <div class="workspace">
-    <header class="topbar"><span id="breadcrumb">Рабочее пространство</span><span class="local-badge">Локальный прототип</span><span class="avatar" aria-label="Профиль">К</span></header>
+    <header class="topbar"><span id="breadcrumb">Рабочее пространство</span><span class="local-badge">Серверное хранение</span><button type="button" class="help-button" id="open-guide">? Помощь</button></header>
     <main id="main"></main>
   </div>
-  <dialog id="create-dialog">
+  <dialog id="create-dialog" aria-labelledby="create-title">
     <form id="create-form">
-      <div class="dialog-heading"><h2>Новый бот</h2><button type="button" class="icon-button" id="close-dialog" aria-label="Закрыть">×</button></div>
+      <div class="dialog-heading"><h2 id="create-title">Новый бот</h2><button type="button" class="icon-button" id="close-dialog" aria-label="Закрыть">×</button></div>
       <label for="bot-name">Название бота</label>
       <input id="bot-name" name="name" required maxlength="80" placeholder="Например, магазин" autocomplete="off">
       <label for="platform">Платформа</label>
@@ -36,6 +40,7 @@
       <div class="dialog-actions"><button type="button" id="cancel-dialog">Отмена</button><button class="primary" type="submit">Создать бота</button></div>
     </form>
   </dialog>
+  <dialog id="guide-dialog" aria-labelledby="guide-title"></dialog>
   <p class="toast" id="toast" role="status" hidden></p>
 </body>
 </html>

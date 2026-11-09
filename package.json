@@ -4,7 +4,20 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check public/app.js"
+    "check": "node --check server.js && node --check project.js && node --check public/app.js && node --check public/guide.js",
+    "test": "node --test",
+    "build": "esbuild src/canvas.jsx --bundle --minify --outfile=public/canvas.js",
+    "prestart": "npm run build"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.12.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
 }
