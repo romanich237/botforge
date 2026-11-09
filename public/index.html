@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BotForge · Проекты</title>
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a href="#projects" class="brand"><span class="brand-icon">▣</span> BotForge</a>
+    <nav aria-label="Основная навигация">
+      <a href="#projects" data-page="projects"><span>▱</span> Проекты</a>
+      <a href="#builder" data-page="builder"><span>⌘</span> Конструктор</a>
+      <a href="#behavior" data-page="behavior"><span>☷</span> Поведение бота</a>
+      <a href="#variables" data-page="variables"><span>{ }</span> Переменные</a>
+      <a href="#testing" data-page="testing"><span>▷</span> Тестирование</a>
+      <a href="#export" data-page="export"><span>↓</span> Экспорт</a>
+      <a href="#settings" data-page="settings"><span>⚙</span> Настройки</a>
+    </nav>
+    <div class="sidebar-note"><span class="dot"></span> Первый этап <small>Интерфейс и проекты</small></div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><span id="breadcrumb">Рабочее пространство</span><span class="local-badge">Локальный прототип</span><span class="avatar" aria-label="Профиль">К</span></header>
+    <main id="main"></main>
+  </div>
+  <dialog id="create-dialog">
+    <form id="create-form">
+      <div class="dialog-heading"><h2>Новый бот</h2><button type="button" class="icon-button" id="close-dialog" aria-label="Закрыть">×</button></div>
+      <label for="bot-name">Название бота</label>
+      <input id="bot-name" name="name" required maxlength="80" placeholder="Например, магазин" autocomplete="off">
+      <label for="platform">Платформа</label>
+      <select id="platform"><option>Telegram</option></select>
+      <p class="muted">Другие платформы появятся на следующих этапах.</p>
+      <div class="dialog-actions"><button type="button" id="cancel-dialog">Отмена</button><button class="primary" type="submit">Создать бота</button></div>
+    </form>
+  </dialog>
+  <p class="toast" id="toast" role="status" hidden></p>
+</body>
+</html>
