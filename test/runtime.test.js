@@ -73,3 +73,10 @@ test('empty preview explains missing start', () => {
   const p = { ...defaults(), name: 'Empty' }; const events = [{ text: '/start' }];
   const result = simulate(p, events); assert.equal(result[0].events[0].type, 'error'); assert.deepEqual(result, python(p, events));
 });
+
+test('contains preserves the literal substring in numeric variables', () => {
+ const p = project(); const condition = p.nodes.find(n => n.type === 'condition'); condition.data.operation = 'contains'; condition.data.value = '02';
+ const events = [{text:'/age'},{text:'20'}]; const result = simulate(p, events);
+ assert(result[1].events.some(e => e.text === 'Младше 18'));
+ assert.deepEqual(JSON.parse(JSON.stringify(result)), python(p, events));
+});

@@ -75,10 +75,11 @@ function paintChat() {
 function renderChat(parent) { const host = element('section', 'chat-mount'); host.id = 'chat-mount'; parent.append(host); paintChat(); }
 function renderTesting() { heading('Тестирование', 'Локальный диалог по текущей схеме. Токен Telegram не нужен.'); const layout = element('div', 'testing-layout'); renderChat(layout); const help = element('aside', 'test-help'); help.append(element('h2', '', 'Проверьте сценарий'), element('p', '', 'Начните с /start, проверьте обе ветки кнопок и условий, правильный и неправильный ввод.'), element('p', '', '/help покажет команды, /cancel отменит ожидание и вернёт к стартовой ветке. /start сбросит переменные.'), button('Проверить схему', validateProject), button('Открыть конструктор', () => { location.hash = 'builder'; })); layout.append(help); main.append(layout); paintChat(); }
 function renderExport() {
+  const spec = window.BotForgeLanguages[exportLanguage];
   const h = heading('Экспорт бота', 'Скачайте исходники и запустите своего Telegram-бота локально.');
-  h.append(element('span', 'platform-tag', '↗ Telegram · Python / JavaScript'));
+  h.append(element('span', 'platform-tag', '↗ Telegram · 4 языка экспорта'));
   const layout = element('section', 'export-layout'); const settings = element('aside', 'export-settings'); settings.append(element('h2', '', 'Настройки экспорта'));
-  const wrap = element('label', 'field'); wrap.append(element('span', '', 'Язык программирования')); const select = element('select'); for (const [v, t] of [['python', 'Python 3.10+'], ['javascript', 'JavaScript · Node.js 20+']]) { const o = element('option', '', t); o.value = v; select.append(o); } select.value = exportLanguage; select.disabled = exportBusy; select.onchange = () => { exportLanguage = select.value; exportResult = null; render(); }; wrap.append(select); settings.append(wrap);
+  const wrap = element('label', 'field'); wrap.append(element('span', '', 'Язык программирования')); const select = element('select'); for (const [v, t] of Object.entries(window.BotForgeLanguages).map(([id, spec]) => [id, spec.name + ' · ' + spec.runtime])) { const o = element('option', '', t); o.value = v; select.append(o); } select.value = exportLanguage; select.disabled = exportBusy; select.onchange = () => { exportLanguage = select.value; exportResult = null; render(); }; wrap.append(select); settings.append(wrap);
   const generate = button(exportBusy ? 'Проверяем и генерируем…' : 'Проверить и подготовить код', prepareExport, 'primary'); generate.disabled = exportBusy; settings.append(generate, element('p', 'muted', 'Экспортируется текущая схема, включая несохранённые изменения. Токен добавляется только в локальный .env.'));
   const code = element('div', 'export-code');
   if (exportResult && exportResult.signature !== scenarioSignature()) exportResult = null;
@@ -96,7 +97,7 @@ function renderExport() {
     for (const warning of exportResult.warnings || []) settings.append(element('p', 'muted', warning.message));
   } else code.append(element('div', 'empty', 'Подготовьте код — здесь появятся исходники и список файлов архива.'));
   layout.append(settings, code); main.append(layout);
-  const instruction = element('section', 'properties export-instruction'); instruction.append(element('h2', '', 'Как запустить'), element('p', '', '1. Установите ' + (exportLanguage === 'python' ? 'Python 3.10+' : 'Node.js 20+') + '. Дополнительные библиотеки не нужны.'), element('p', '', '2. Распакуйте ZIP, скопируйте .env.example в .env и впишите токен от @BotFather.'), element('p', '', '3. В терминале из папки бота выполните: ' + (exportLanguage === 'python' ? 'python3 bot.py' : 'node bot.js')), element('p', 'muted', 'Бот работает в личных чатах. Один экземпляр на токен; состояние пользователей хранится в памяти и сбрасывается после перезапуска.')); main.append(instruction);
+  const instruction = element('section', 'properties export-instruction'); instruction.append(element('h2', '', 'Как запустить'), element('p', '', '1. Установите ' + spec.runtime + '. ' + spec.setup), element('p', '', '2. Распакуйте ZIP, скопируйте .env.example в .env и впишите токен от @BotFather.'), element('p', '', '3. В терминале из папки бота выполните: ' + spec.command), element('p', 'muted', 'Бот работает в личных чатах. Один экземпляр на токен; состояние пользователей хранится в памяти и сбрасывается после перезапуска.')); main.append(instruction);
 }
 async function exportRequest(zip) {
   const signature = scenarioSignature();

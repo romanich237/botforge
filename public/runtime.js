@@ -28,7 +28,7 @@
         if (node.type === 'buttons' || node.type === 'end') { this.waiting = null; this.deadline = null; break; }
         if (node.type === 'condition') {
           const left = this.values[d.variable], right = typeof left === 'number' ? Number(d.value) : d.value;
-          const yes = { eq: () => left === right, ne: () => left !== right, contains: () => String(left).includes(String(right)), gt: () => left > right, lt: () => left < right }[d.operation]();
+          const yes = { eq: () => left === right, ne: () => left !== right, contains: () => String(left).includes(String(d.value)), gt: () => left > right, lt: () => left < right }[d.operation]();
           id = this.next(id, yes ? 'yes' : 'no');
         } else id = this.next(id);
       }
