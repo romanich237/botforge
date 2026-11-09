@@ -4,3 +4,5 @@ data/
 .DS_Store
 public/canvas.js
 public/canvas.css
+__pycache__/
+*.pyc

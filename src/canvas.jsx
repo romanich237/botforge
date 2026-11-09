@@ -5,7 +5,7 @@ import '@xyflow/react/dist/style.css';
 
 const icons = { start: '▶', command: '/', text: 'T', buttons: '▦', input: '↵', condition: '◇', end: '■' };
 function ScenarioNode({ data, selected }) {
-  return <div className={'scenario-node type-' + data.type + (selected ? ' is-selected' : '')}>
+  return <div className={'scenario-node type-' + data.type + (selected ? ' is-selected' : '') + (data.active ? ' is-active' : '')}>
     <Handle type="target" position={Position.Left} aria-label={'Вход · ' + data.title} />
     <div className="scenario-node-title"><span className="block-symbol">{icons[data.type]}</span><strong>{data.title}</strong><span className="node-menu">···</span></div>
     <div className="scenario-node-body">{data.text || (data.type === 'start' ? 'Запуск по /start' : data.type === 'end' ? 'Конец ветки' : 'Нажмите, чтобы настроить')}</div>
@@ -18,10 +18,10 @@ window.BotForgeCanvas = {
     const root = createRoot(container);
     let refresh = () => {};
     function Canvas() {
-      const [nodes, setNodes] = useState(project.nodes.map(n => ({ id: n.id, type: 'scenario', position: { x: n.x, y: n.y }, selected: n.id === callbacks.selected, data: { title: names[n.type], type: n.type, text: n.data.text || n.data.command, outputs: outputs(n) } })));
+      const [nodes, setNodes] = useState(project.nodes.map(n => ({ id: n.id, type: 'scenario', position: { x: n.x, y: n.y }, selected: n.id === callbacks.selected, data: { title: names[n.type], active: callbacks.current?.() === n.id, type: n.type, text: n.data.text || n.data.command, outputs: outputs(n) } })));
       const [edges, setEdges] = useState(project.edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.output, type: 'smoothstep', markerEnd: { type: MarkerType.ArrowClosed }, style: { strokeWidth: 2 } })));
       refresh = () => {
-        setNodes(current => current.map(node => { const n = project.nodes.find(n => n.id === node.id); return n ? { ...node, data: { title: names[n.type], type: n.type, text: n.data.text || n.data.command, outputs: outputs(n) } } : node; }));
+        setNodes(current => current.map(node => { const n = project.nodes.find(n => n.id === node.id); return n ? { ...node, data: { title: names[n.type], active: callbacks.current?.() === n.id, type: n.type, text: n.data.text || n.data.command, outputs: outputs(n) } } : node; }));
         setEdges(project.edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.output, type: 'smoothstep', markerEnd: { type: MarkerType.ArrowClosed } })));
       };
       return <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes}

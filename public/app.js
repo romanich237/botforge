@@ -12,7 +12,7 @@ function button(text, action, cls = '') { const b = element('button', cls, text)
 function notify(message) { const t = document.querySelector('#toast'); t.textContent = message; t.hidden = false; clearTimeout(notify.timer); notify.timer = setTimeout(() => { t.hidden = true; }, 6000); }
 async function api(url, method = 'GET', body) { const r = await fetch('/api/projects' + url, { method, headers: body === undefined ? {} : { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const data = await r.json(); if (!r.ok) throw Error(data.message || 'Ошибка запроса'); return data; }
 function status(text) { document.querySelector('.local-badge').textContent = text; }
-function changed() { dirty = true; status('Есть изменения'); refreshChecklist(); }
+function changed() { dirty = true; status('Есть изменения'); refreshChecklist(); if (document.querySelector('#chat-mount')) paintChat(); }
 function leave() { if (busy) { notify('Дождитесь завершения сохранения'); return false; } return !dirty || confirm('Есть несохранённые изменения. Покинуть проект?'); }
 async function reload() { loading = true; loadError = ''; render(); try { projects = await api(''); } catch (e) { loadError = e.message; } loading = false; render(); }
 async function openProject(id) { if (!leave()) return; const project = await api('/' + id); draft = project; editorTab = 'canvas'; canvasViewport = null; selectedId = id; selectedNode = null; dirty = false; sessionStorage.setItem('botforge.selected', id); location.hash = 'builder'; render(); }
@@ -96,7 +96,7 @@ function renderGuide() {
     ['Как соединить блоки на телефоне?', 'Откройте вкладку «Схема», выберите блок и перейдите к его свойствам. В поле «Переход» выберите целевой блок. Для каждой кнопки доступен отдельный переход.'],
     ['Как переместить или удалить связь?', 'Перетаскивайте блок за заголовок. Чтобы заменить переход, соедините тот же выход с другим блоком. Чтобы удалить связь, откройте список «Связи» в свойствах и нажмите × рядом с нужной парой.'],
     ['Когда сохраняются изменения?', 'Сохранение ручное: нажмите «Сохранить» и дождитесь статуса «Сохранено». Если произошла ошибка, изменения остаются на экране — повторите сохранение.'],
-    ['Что уже работает, а что появится позже?', 'Работают проекты, схема, свойства блоков, переменные и серверная проверка. Настройки поведения сохраняются. Интерактивный чат, генерация Python/JavaScript и ZIP пока в разработке.'],
+    ['Что уже работает, а что появится позже?', 'Работают схема, интерактивный чат и экспорт ZIP на Python и JavaScript. Медиа, хостинг ботов и другие платформы запланированы на следующие этапы.'],
     ['Зачем нужны переменные?', 'Они хранят данные пользователя. Создайте переменную, например имя, в разделе «Переменные», выберите её в блоке ввода и используйте {имя} в сообщении.']
   ]) { const item = element('details'); item.append(element('summary', '', q), element('p', '', a)); faq.append(item); } main.append(faq);
 }
@@ -112,9 +112,9 @@ function connectBlocks(source, output, target) {
 }
 function renderBuilder() {
   const h = heading('Сценарий бота', 'Telegram · Добавьте блоки, соедините и сохраните');
-  const actions = element('div', 'editor-actions'); actions.append(button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions);
+  const actions = element('div', 'editor-actions'); actions.append(button('▷ Предпросмотр', () => { editorTab = 'test'; render(); }), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions);
   const mobileTabs = element('div', 'editor-tabs'); mobileTabs.setAttribute('role', 'group'); mobileTabs.setAttribute('aria-label', 'Панели конструктора');
-  for (const [id, text] of [['blocks', '+ Блоки'], ['canvas', '⌘ Схема'], ['properties', '⚙ Свойства']]) { const b = button(text, () => { editorTab = id; render(); }, editorTab === id ? 'active' : ''); b.setAttribute('aria-pressed', String(editorTab === id)); mobileTabs.append(b); }
+  for (const [id, text] of [['blocks', '+ Блоки'], ['canvas', '⌘ Схема'], ['properties', '⚙ Свойства'], ['test', '▷ Тест']]) { const b = button(text, () => { editorTab = id; render(); }, editorTab === id ? 'active' : ''); b.setAttribute('aria-pressed', String(editorTab === id)); mobileTabs.append(b); }
   main.append(mobileTabs);
   const builder = element('section', 'builder editor-shell tab-' + editorTab);
   const library = element('aside', 'library'); library.append(element('div', 'panel-eyebrow', 'ИНСТРУМЕНТЫ'), element('h2', '', 'Блоки сценария'), element('p', 'muted', 'Нажмите, чтобы добавить'));
@@ -130,16 +130,19 @@ function renderBuilder() {
   const picker = element('label', 'field block-picker'); picker.append(element('span', '', 'Выберите блок')); const select = element('select'); const placeholder = element('option', '', 'Выберите блок на схеме или в списке'); placeholder.value = ''; select.append(placeholder);
   for (const n of draft.nodes) { const option = element('option', '', blockNames[n.type] + ' · ' + (n.data.text || n.data.command || n.id.slice(0, 6)).slice(0, 40)); option.value = n.id; select.append(option); }
   select.value = selectedNode || ''; select.onchange = () => { selectedNode = select.value || null; render(); }; picker.append(select); inspector.append(picker);
+  if (editorTab === 'test') { inspector.replaceChildren(); inspector.append(button('← Свойства блоков', () => { editorTab = 'properties'; render(); }, 'text-button')); renderChat(inspector); }
   const node = draft.nodes.find(n => n.id === selectedNode);
-  if (node) renderProperties(node, inspector);
+  if (editorTab === 'test') {}
+  else if (node) renderProperties(node, inspector);
   else { inspector.append(element('h2', '', 'Свойства блока'), element('div', 'inspector-empty', '↖'), element('h3', '', 'Выберите блок на схеме'), element('p', 'muted', 'Здесь появятся текст сообщения, кнопки и настройки переходов.'), element('div', 'inspector-tip', 'Совет: линии можно выделить и удалить кнопкой ниже.')); }
   const connections = element('details', 'connections-list'); connections.append(element('summary', '', 'Связи · ' + draft.edges.length));
   for (const edge of draft.edges) { const source = draft.nodes.find(n => n.id === edge.source), target = draft.nodes.find(n => n.id === edge.target); if (!source || !target) continue; const row = element('div', 'connection-row'); row.append(element('span', '', blockNames[source.type] + ' → ' + blockNames[target.type]), button('×', () => { draft.edges = draft.edges.filter(e => e.id !== edge.id); changed(); render(); }, 'remove-edge')); row.lastChild.setAttribute('aria-label', 'Удалить связь ' + blockNames[source.type] + ' → ' + blockNames[target.type]); connections.append(row); }
-  inspector.append(connections); builder.append(inspector); main.append(builder);
+  if (editorTab !== 'test') inspector.append(connections); builder.append(inspector); main.append(builder); if (editorTab === 'test') paintChat();
   const progress = element('section', 'quick-start'); progress.id = 'quick-start'; main.append(progress); refreshChecklist();
   if (window.matchMedia('(max-width: 650px)').matches && editorTab !== 'canvas') return;
   disposeCanvas = window.BotForgeCanvas.mount(canvas, draft, blockNames, outputs, {
     selected: selectedNode,
+    current: () => previewState?.engine.project.id === draft.id && !previewStale() ? previewState.engine.current : null,
     select: id => { if (selectedNode !== id) { selectedNode = id; if (id) editorTab = 'properties'; render(); } },
     connect: c => connectBlocks(c.source, c.sourceHandle, c.target),
     move: changes => { for (const c of changes) if (c.type === 'position' && c.position) { const n = draft.nodes.find(n => n.id === c.id); if (n && (n.x !== c.position.x || n.y !== c.position.y)) { n.x = c.position.x; n.y = c.position.y; changed(); } } },
@@ -175,11 +178,14 @@ function renderVariables() {
   main.append(button('+ Переменная', () => { draft.variables.push({ name: 'переменная_' + (draft.variables.length + 1), type: 'text', initial: '' }); changed(); render(); }));
 }
 function renderBehavior() {
-  heading('Поведение бота', 'Настройки сохраняются в проекте. Исполнение и экспорт ещё в разработке.');
+  heading('Поведение бота', 'Эти настройки действуют в предпросмотре и скачанном боте.');
   const panel = element('section', 'properties');
-  for (const [key, label] of Object.entries({ unknownCommand: 'Автоответ на неизвестную команду', unknownText: 'Автоответ на непонятный текст', help: 'Автоматический /help', cancel: '/cancel возвращает к стартовому сценарию', disableOldButtons: 'Отключать старые кнопки', repeatQuestion: 'Повторять вопрос при неверном вводе', preventDoubleClick: 'Защита от повторных нажатий', ignoreCase: 'Игнорировать регистр команд' })) {
-    const wrap = element('label', 'check-row'); const input = element('input'); input.type = 'checkbox'; input.checked = draft.behavior[key] === true; input.onchange = () => { draft.behavior[key] = input.checked; changed(); }; wrap.append(input, document.createTextNode(label)); panel.append(wrap);
+  for (const [key, label] of Object.entries({ unknownCommand: 'Автоответ на неизвестную команду', unknownText: 'Автоответ на непонятный текст', help: 'Автоматический /help', cancel: '/cancel возвращает к стартовому сценарию', disableOldButtons: 'Отключать старые кнопки', repeatQuestion: 'Повторять вопрос при неверном вводе', preventDoubleClick: 'Защита от повторных нажатий', ignoreCase: 'Игнорировать регистр команд', deleteUser: 'Удалять сообщение пользователя после обработки (зависит от прав Telegram)', typing: 'Показывать «Печатает…»', inputTimeout: 'Ограничить время ожидания ввода', rateLimit: 'Ограничить частоту сообщений' })) {
+    const wrap = element('label', 'check-row'); const input = element('input'); input.type = 'checkbox'; input.checked = draft.behavior[key] === true; input.onchange = () => { draft.behavior[key] = input.checked; if (key === 'inputTimeout') { draft.behavior.timeoutSeconds ??= 60; draft.behavior.timeoutText ??= 'Время ожидания истекло.'; } if (key === 'rateLimit') { draft.behavior.rateCount ??= 5; draft.behavior.rateSeconds ??= 10; } changed(); render(); }; wrap.append(input, document.createTextNode(label)); panel.append(wrap);
   }
+  field(panel, 'История сообщений', draft.behavior.history || 'keep', v => { draft.behavior.history = v; }, [['keep', 'Оставлять сообщения'], ['delete', 'Удалять предыдущее сообщение бота'], ['update', 'Обновлять предыдущее сообщение бота']]);
+  if (draft.behavior.inputTimeout) { field(panel, 'Время ожидания, секунд', draft.behavior.timeoutSeconds ?? 60, v => { draft.behavior.timeoutSeconds = Number(v); }); field(panel, 'Сообщение по истечении времени', draft.behavior.timeoutText || 'Время ожидания истекло.', v => { draft.behavior.timeoutText = v; }); }
+  if (draft.behavior.rateLimit) { field(panel, 'Количество сообщений', draft.behavior.rateCount ?? 5, v => { draft.behavior.rateCount = Number(v); }); field(panel, 'Интервал, секунд', draft.behavior.rateSeconds ?? 10, v => { draft.behavior.rateSeconds = Number(v); }); }
   field(panel, 'Ответ на неизвестную команду', draft.behavior.unknownCommandText, v => { draft.behavior.unknownCommandText = v; }); field(panel, 'Ответ на непонятный текст', draft.behavior.unknownTextMessage, v => { draft.behavior.unknownTextMessage = v; }); main.append(panel);
 }
 function render() {
@@ -190,10 +196,12 @@ function render() {
   if (page === 'guide') return renderGuide();
   if (!draft) { heading(titles[page], 'Откройте проект, чтобы продолжить.'); main.append(button('К проектам', () => { location.hash = 'projects'; })); return; }
   if (page === 'builder') return renderBuilder();
+  if (page === 'testing') return renderTesting();
+  if (page === 'export') return renderExport();
   if (page === 'variables') renderVariables();
   else if (page === 'behavior') renderBehavior();
   else if (page === 'settings') { heading('Настройки проекта', 'Название и описание'); const panel = element('section', 'properties'); field(panel, 'Название', draft.name, v => { draft.name = v; }); field(panel, 'Описание', draft.description, v => { draft.description = v; }); main.append(panel); }
-  else { heading(titles[page], page === 'export' ? 'Серверная проверка доступна. Генерация Python / JavaScript и ZIP пока не реализована.' : 'Интерактивное выполнение сценария пока не реализовано.'); main.append(button('Проверить проект', validateProject)); }
+
   main.append(button('Сохранить', saveProject, 'primary'));
 }
 document.querySelector('#open-guide').onclick = openGuide;

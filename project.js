@@ -1,6 +1,6 @@
 const types = ['start', 'command', 'text', 'buttons', 'input', 'condition', 'end'];
 function defaults() {
-  return { version: 1, name: '', description: '', platform: 'telegram', nodes: [], edges: [], variables: [], behavior: { unknownCommand: true, unknownText: true, help: true, cancel: true, disableOldButtons: true, repeatQuestion: true, preventDoubleClick: true, ignoreCase: false, unknownCommandText: 'Неизвестная команда. Введите /help', unknownTextMessage: 'Не понимаю. Введите /help' } };
+  return { version: 1, name: '', description: '', platform: 'telegram', nodes: [], edges: [], variables: [], behavior: { unknownCommand: true, unknownText: true, help: true, cancel: true, disableOldButtons: true, repeatQuestion: true, preventDoubleClick: true, ignoreCase: false, history: 'keep', deleteUser: false, typing: false, inputTimeout: false, timeoutSeconds: 60, timeoutText: 'Время ожидания истекло.', rateLimit: false, rateCount: 5, rateSeconds: 10, unknownCommandText: 'Неизвестная команда. Введите /help', unknownTextMessage: 'Не понимаю. Введите /help' } };
 }
 function checkShape(p) {
   if (!p || typeof p !== 'object' || Array.isArray(p)) return 'Ожидается объект проекта';
@@ -9,11 +9,13 @@ function checkShape(p) {
   if (!Array.isArray(p.nodes) || !Array.isArray(p.edges) || !Array.isArray(p.variables) || p.nodes.length > 500 || p.edges.length > 2000 || p.variables.length > 200) return 'Некорректные списки или превышен лимит элементов';
   if (!p.behavior || typeof p.behavior !== 'object' || Array.isArray(p.behavior)) return 'Некорректные настройки поведения';
   for (const [key, value] of Object.entries(defaults().behavior)) if (p.behavior[key] !== undefined && typeof p.behavior[key] !== typeof value) return 'Некорректная настройка поведения: ' + key;
+  if (p.behavior.history !== undefined && !['keep', 'delete', 'update'].includes(p.behavior.history)) return 'Некорректный режим истории';
   const ids = new Set();
   for (const n of p.nodes) {
     if (!n || typeof n.id !== 'string' || !n.id || ids.has(n.id) || !types.includes(n.type) || !n.data || typeof n.data !== 'object' || Array.isArray(n.data) || !Number.isFinite(n.x) || !Number.isFinite(n.y)) return 'Некорректный блок или повтор ID';
     if (n.type === 'buttons' && (!Array.isArray(n.data.buttons) || n.data.buttons.some(b => !b || typeof b.id !== 'string' || typeof b.label !== 'string' || !['url', 'transition'].includes(b.action)) || new Set(n.data.buttons.map(b => b.id)).size !== n.data.buttons.length)) return 'Некорректный список кнопок';
     if (n.type === 'input' && n.data.choices !== undefined && typeof n.data.choices !== 'string') return 'Некорректные варианты ввода';
+    for (const key of ['text', 'command', 'description', 'error', 'variable', 'value', 'operation', 'validation', 'placement']) if (n.data[key] !== undefined && typeof n.data[key] !== 'string') return 'Некорректное поле блока: ' + key;
     ids.add(n.id);
   }
   const outputs = new Set(); const edgeIds = new Set();
@@ -30,6 +32,8 @@ function checkShape(p) {
 function validate(p) {
   const errors = [], warnings = [];
   const add = (code, message, nodeId, field) => errors.push({ code, message, nodeId, field });
+  if (p.behavior.inputTimeout && (!Number.isFinite(p.behavior.timeoutSeconds) || p.behavior.timeoutSeconds <= 0)) add('TIMEOUT', 'Время ожидания должно быть положительным числом');
+  if (p.behavior.rateLimit && (!Number.isInteger(p.behavior.rateCount) || p.behavior.rateCount <= 0 || !Number.isInteger(p.behavior.rateSeconds) || p.behavior.rateSeconds <= 0)) add('RATE_LIMIT', 'Лимит и интервал должны быть положительными целыми числами');
   const starts = p.nodes.filter(n => n.type === 'start');
   if (starts.length !== 1) add('START', 'Нужен ровно один блок «Старт»');
   const variables = new Set();
@@ -55,12 +59,15 @@ function validate(p) {
       if (['gt', 'lt'].includes(d.operation) && (p.variables.find(v => v.name === d.variable)?.type !== 'number' || !Number.isFinite(Number(d.value)))) add('CONDITION', 'Числовое сравнение требует число и числовую переменную', n.id, 'value');
     }
     if (n.type === 'buttons') {
+      if (d.placement && !['inline', 'keyboard'].includes(d.placement)) add('BUTTONS', 'Неверное расположение кнопок', n.id, 'placement');
       if (!Array.isArray(d.buttons) || !d.buttons.length) add('BUTTONS', 'Добавьте кнопки', n.id, 'buttons');
-      else for (const b of d.buttons) {
+      else { if (d.placement === 'keyboard' && new Set(d.buttons.map(b => b.label)).size !== d.buttons.length) add('BUTTON', 'Подписи кнопок клавиатуры должны отличаться', n.id, 'buttons');
+      for (const b of d.buttons) {
         if (!b || typeof b.id !== 'string' || typeof b.label !== 'string' || !b.label.trim()) { add('BUTTON', 'Заполните кнопку', n.id, 'buttons'); continue; }
+        if (b.label.length > 128) add('BUTTON', 'Подпись кнопки: максимум 128 символов', n.id, 'buttons');
         if (b.action === 'url') { try { if (d.placement === 'keyboard' || !['http:', 'https:'].includes(new URL(b.url).protocol)) throw Error(); } catch { add('URL', 'Ссылка должна быть HTTP(S) и находиться под сообщением', n.id, 'buttons'); } }
         else if (b.action !== 'transition') add('BUTTON', 'Неизвестное действие кнопки', n.id, 'buttons');
-      }
+      }}
     }
     for (const value of [d.text, d.error]) if (typeof value === 'string') for (const match of value.matchAll(/\{([^{}]+)\}/g)) if (!variables.has(match[1])) add('VARIABLE', 'Неизвестная переменная: ' + match[1], n.id, 'text');
     const outputs = n.type === 'condition' ? ['yes', 'no'] : n.type === 'buttons' ? (Array.isArray(d.buttons) ? d.buttons.filter(b => b?.action === 'transition').map(b => b.id) : []) : ['start', 'command', 'input'].includes(n.type) ? ['next'] : [];
