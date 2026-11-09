@@ -16,10 +16,32 @@ end: {}, no outputs.
 Edge: {source:nodeId,output:string,target:nodeId}. Only one edge per source/output. No missing required edges. All blocks reachable from start or commands. Avoid automatic cycles.
 Variable: {name:string,type:'text'|'number',initial:string|number}. Unique names use letters, digits and underscore, starting with letter or underscore. Declare all variables referenced in messages as {name}.
 Use the user's language, Russian by default. Generate a complete connected scenario. If an existing scenario is supplied, incorporate changes requested by the user without dropping unrelated useful branches. No external links unless the user supplied them. Never include API keys, bot tokens or credentials. This is a draft for review, not an instruction to deploy or contact users.`;
+function parseScenario(content) {
+  const text = content.trim().replace(/^\uFEFF/, '');
+  try { return JSON.parse(text); } catch {}
+  const candidates = [];
+  let start = -1, depth = 0, quoted = false, escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (start === -1) { if (char === '{') { start = i; depth = 1; } continue; }
+    if (quoted) { if (escaped) escaped = false; else if (char === '\\') escaped = true; else if (char === '"') quoted = false; continue; }
+    if (char === '"') quoted = true;
+    else if (char === '{') depth++;
+    else if (char === '}' && --depth === 0) {
+      try {
+        const value = JSON.parse(text.slice(start, i + 1));
+        if (value && Array.isArray(value.nodes) && Array.isArray(value.edges) && Array.isArray(value.variables)) candidates.push(value);
+      } catch {}
+      start = -1;
+    }
+  }
+  if (candidates.length !== 1) throw error(502, candidates.length > 1 ? 'ИИ вернул несколько вариантов сразу. Запросите один сценарий.' : 'ИИ не вернул завершённый JSON-сценарий. Схема не изменена; попробуйте ещё раз.');
+  return candidates[0];
+}
 function createAssistant(config = {}) {
   const key = config.key ?? process.env.AI_API_KEY;
   const base = config.base ?? process.env.AI_BASE_URL ?? 'https://triklz27.ru/v1';
-  const model = config.model ?? process.env.AI_MODEL ?? 'gemini-3.6-flash';
+  const model = config.model ?? process.env.AI_MODEL ?? 'gpt-6-luna';
   const request = config.fetch ?? fetch;
   let busy = false, lastRequest = 0;
   const status = () => ({ configured: !!key, model, provider: new URL(base).hostname });
@@ -35,15 +57,16 @@ function createAssistant(config = {}) {
     busy = true; lastRequest = Date.now();
     try {
       let response;
-      try { response = await request(base.replace(/\/$/, '') + '/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify({ model, temperature: 0.2, max_tokens: 6000, messages: [{ role: 'system', content: instructions }, { role: 'user', content: JSON.stringify({ description: prompt.trim(), currentScenario: JSON.parse(context) }) }] }), signal: AbortSignal.timeout(90000) }); }
+      try { response = await request(base.replace(/\/$/, '') + '/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify({ model, temperature: 0.2, max_tokens: 12000, reasoning_effort: 'low', response_format: { type: 'json_object' }, messages: [{ role: 'system', content: instructions }, { role: 'user', content: JSON.stringify({ description: prompt.trim(), currentScenario: JSON.parse(context) }) }] }), signal: AbortSignal.timeout(180000) }); }
       catch { throw error(502, 'ИИ не ответил вовремя. Схема не изменена, попробуйте ещё раз.'); }
       if (!response.ok) throw error(502, 'Сервис ИИ отклонил запрос (HTTP ' + response.status + '). Схема не изменена.');
       let result;
       try { result = await response.json(); } catch { throw error(502, 'Сервис ИИ вернул некорректный ответ.'); }
-      const content = result?.choices?.[0]?.message?.content;
+      const choice = result?.choices?.[0];
+      if (choice?.finish_reason === 'length' || choice?.finish_reason === 'max_tokens') throw error(502, 'Ответ ИИ оборван по лимиту длины. Схема не изменена. Сократите запрос или создавайте сценарий по частям.');
+      const content = choice?.message?.content;
       if (typeof content !== 'string' || content.length > 250000) throw error(502, 'ИИ не вернул сценарий. Попробуйте уточнить описание.');
-      let parsed;
-      try { parsed = JSON.parse(content.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')); } catch { throw error(502, 'ИИ вернул не JSON-сценарий. Попробуйте уточнить описание.'); }
+      const parsed = parseScenario(content);
       if (!parsed || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges) || !Array.isArray(parsed.variables) || parsed.nodes.length > 60) throw error(502, 'ИИ вернул неверную структуру сценария.');
       const draft = { ...project, nodes: parsed.nodes.map(n => ({ id: n?.id, type: n?.type, data: n?.data, x: 0, y: 0 })), edges: parsed.edges.map(e => ({ id: randomUUID(), source: e?.source, output: e?.output, target: e?.target })), variables: parsed.variables };
       const problem = checkShape(draft); if (problem) throw error(502, 'ИИ-сценарий не прошёл проверку: ' + problem);

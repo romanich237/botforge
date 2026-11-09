@@ -36,3 +36,28 @@ test('concurrent AI requests and oversized descriptions are limited', async () =
  await assert.rejects(ai.generate(p,'x'.repeat(4001)),e=>e.status===400);
  const pending=ai.generate(p,'Меню');await assert.rejects(ai.generate(p,'Ещё меню'),e=>e.status===429);release();await pending;
 });
+
+test('AI accepts one JSON scenario surrounded by explanation and a markdown fence', async () => {
+ const p=project();const content='Вот готовый сценарий:\n```json\n'+JSON.stringify(output(p))+'\n```\nПроверьте тексты перед запуском.';
+ const ai=createAssistant({key:'test',cooldown:0,fetch:async()=>Response.json({choices:[{finish_reason:'stop',message:{content}}]})});
+ const result=await ai.generate(p,'Меню');assert.equal(result.nodes.length,4);
+});
+test('AI distinguishes token truncation from invalid JSON', async () => {
+ const p=project();const ai=createAssistant({key:'test',cooldown:0,fetch:async()=>Response.json({choices:[{finish_reason:'length',message:{content:'{"nodes":['}}]})});
+ await assert.rejects(ai.generate(p,'Меню'),e=>e.status===502&&/лимит|оборван/.test(e.message));
+});
+
+test('JSON extraction handles braces and escaped quotes inside messages and rejects ambiguity', async () => {
+ const p=project();p.nodes.find(n=>n.type==='text').data.text='Текст с {переменная}, кавычками " и фигурной скобкой }';p.variables=[{name:'переменная',type:'text',initial:'пример'}];
+ const body=JSON.stringify(output(p));
+ const ai=createAssistant({key:'test',cooldown:0,fetch:async()=>Response.json({choices:[{message:{content:'Сценарий:\n```json\n'+body+'\n```'}}]})});
+ const result=await ai.generate(p,'Меню');assert(result.nodes.some(n=>n.data.text?.includes('скобкой }')));
+ const ambiguous=createAssistant({key:'test',cooldown:0,fetch:async()=>Response.json({choices:[{message:{content:body+'\n'+body}}]})});
+ await assert.rejects(ambiguous.generate(p,'Меню'),e=>e.status===502&&e.message.includes('несколько'));
+});
+
+test('AI requests structured JSON with reduced reasoning and enough output budget', async () => {
+ const p=project();let body;
+ const ai=createAssistant({key:'test',cooldown:0,fetch:async(_,options)=>{body=JSON.parse(options.body);return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(output(p))}}]});}});
+ await ai.generate(p,'Магазин');assert.deepEqual(body.response_format,{type:'json_object'});assert.equal(body.reasoning_effort,'low');assert.equal(body.max_tokens,12000);
+});
