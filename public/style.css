@@ -350,3 +350,16 @@ button.chat-choice, a.chat-choice { display: block; margin-top: 6px; width: 100%
 .source-view { font-family: ui-monospace,SFMono-Regular,Menlo,monospace; font-size: 12px; line-height: 1.7; padding: 20px; background: #f7f9fc; border: 1px solid #e7ecf5; border-radius: 8px; overflow: auto; max-height: 560px; tab-size: 2; }
 .export-instruction p { font-size: 13px; }
 @media(max-width:650px) { .editor-tabs { grid-template-columns: repeat(4,minmax(0,1fr)); } .editor-tabs button { font-size: 11px; } .editor-actions { flex-wrap: wrap; } .editor-actions button { font-size: 11px; padding: 10px; min-width: 0; } .editor-shell.tab-test .inspector { display: block; padding: 12px; } .inspector .chat-mount { height: 65dvh; min-height: 420px; } .chat-form textarea { font-size: 16px; } .chat-keyboard button, .chat-choice { min-height: 42px; } .testing-layout, .export-layout { grid-template-columns: minmax(0,1fr); } .export-settings { border-right: 0; border-bottom: 1px solid var(--border); } .export-code { padding: 14px; } .source-view { font-size: 11px; padding: 12px; } .chat-mount { max-height: none; height: 65dvh; min-height: 440px; } }
+.editor-actions { flex-wrap: wrap; }
+.editor-actions .ai-trigger { background: #f0edff; border-color: #ded7ff; color: #6f4bc4; font-weight: 600; }
+.editor-page > .page-heading { height: auto; min-height: 84px; }
+#ai-dialog { width: min(640px,calc(100% - 28px)); max-height: calc(100dvh - 40px); overflow-y: auto; }
+#ai-dialog textarea { min-height: 125px; line-height: 1.6; }
+.ai-provider { padding: 10px 12px; font-size: 11px; background: #f3f0ff; color: #7353b5; border-radius: 8px; }
+.ai-privacy { color: #77849b; font-size: 11px; line-height: 1.7; }
+.ai-proposal { padding: 18px; background: #f8f9fd; border: 1px solid #e5e9f4; border-radius: 10px; margin-top: 20px; }
+.ai-proposal h3 { font-size: 15px; margin-top: 0; }
+.ai-proposal p, .ai-proposal li { font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.ai-proposal ol { max-height: 210px; overflow-y: auto; padding-left: 22px; }
+.ai-error { padding: 12px; background: #fff0ed; color: #a24740; font-size: 12px; border-radius: 8px; }
+@media(max-width:650px) { #ai-dialog { padding: 20px; } #ai-dialog textarea { font-size: 16px; } .editor-actions button { flex: 1 1 28%; } }

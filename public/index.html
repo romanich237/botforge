@@ -11,6 +11,8 @@
   <script defer src="/runtime.js"></script>
   <script defer src="/languages.js"></script>
   <script defer src="/preview.js"></script>
+  <script defer src="/layout.js"></script>
+  <script defer src="/ai.js"></script>
   <script defer src="/app.js"></script>
 </head>
 <body>
@@ -43,6 +45,7 @@
       <div class="dialog-actions"><button type="button" id="cancel-dialog">Отмена</button><button class="primary" type="submit">Создать бота</button></div>
     </form>
   </dialog>
+  <dialog id="ai-dialog" aria-labelledby="ai-title"></dialog>
   <dialog id="guide-dialog" aria-labelledby="guide-title"></dialog>
   <p class="toast" id="toast" role="status" hidden></p>
 </body>

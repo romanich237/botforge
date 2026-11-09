@@ -112,7 +112,7 @@ function connectBlocks(source, output, target) {
 }
 function renderBuilder() {
   const h = heading('Сценарий бота', 'Telegram · Добавьте блоки, соедините и сохраните');
-  const actions = element('div', 'editor-actions'); actions.append(button('▷ Предпросмотр', () => { editorTab = 'test'; render(); }), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions);
+  const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { editorTab = 'test'; render(); }), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions);
   const mobileTabs = element('div', 'editor-tabs'); mobileTabs.setAttribute('role', 'group'); mobileTabs.setAttribute('aria-label', 'Панели конструктора');
   for (const [id, text] of [['blocks', '+ Блоки'], ['canvas', '⌘ Схема'], ['properties', '⚙ Свойства'], ['test', '▷ Тест']]) { const b = button(text, () => { editorTab = id; render(); }, editorTab === id ? 'active' : ''); b.setAttribute('aria-pressed', String(editorTab === id)); mobileTabs.append(b); }
   main.append(mobileTabs);
