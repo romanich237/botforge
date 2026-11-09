@@ -3,9 +3,10 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { validate, checkShape, defaults } = require('./project');
+const { generate, archive } = require('./exporter');
 
 function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, 'data')) {
-  const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/canvas.js': ['canvas.js', 'text/javascript; charset=utf-8'], '/canvas.css': ['canvas.css', 'text/css; charset=utf-8'], '/guide.js': ['guide.js', 'text/javascript; charset=utf-8'] };
+  const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/canvas.js': ['canvas.js', 'text/javascript; charset=utf-8'], '/canvas.css': ['canvas.css', 'text/css; charset=utf-8'], '/guide.js': ['guide.js', 'text/javascript; charset=utf-8'], '/runtime.js': ['runtime.js', 'text/javascript; charset=utf-8'], '/preview.js': ['preview.js', 'text/javascript; charset=utf-8'] };
   // shortcut: single local server, use a transactional database before multiple instances.
   let queue = Promise.resolve();
   async function load(id) {
@@ -36,11 +37,11 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, 'da
       let body;
       if (['POST', 'PUT'].includes(req.method)) {
         if (!req.headers['content-type']?.startsWith('application/json')) return send(415, { message: 'Ожидается application/json' });
-        let raw = ''; let size = 0;
-        for await (const chunk of req) { size += chunk.length; if (size > 1024 * 1024) return send(413, { message: 'Проект превышает 1 МБ' }); raw += chunk; }
-        try { body = JSON.parse(raw); } catch { return send(400, { message: 'Некорректный JSON' }); }
+        const chunks = []; let size = 0;
+        for await (const chunk of req) { size += chunk.length; if (size > 1024 * 1024) return send(413, { message: 'Проект превышает 1 МБ' }); chunks.push(chunk); }
+        try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return send(400, { message: 'Некорректный JSON' }); }
       }
-      const match = url.pathname.match(/^\/api\/projects(?:\/([a-f0-9-]{36})(?:\/(duplicate|validate))?)?$/);
+      const match = url.pathname.match(/^\/api\/projects(?:\/([a-f0-9-]{36})(?:\/(duplicate|validate|export(?:\/zip)?))?)?$/);
       if (!match) return send(404, { message: 'Не найдено' });
       const [, id, action] = match;
       const run = async () => {
@@ -58,6 +59,13 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, 'da
         }
         if (!id) return send(405, { message: 'Метод не поддерживается' });
         const current = await load(id);
+        if ((action === 'export' || action === 'export/zip') && req.method === 'POST') {
+          const result = await generate(body?.project, body?.language);
+          if (!result.valid) return send(422, result);
+          if (action === 'export') return send(200, result);
+          res.writeHead(200, { 'Content-Type': 'application/zip', 'Content-Disposition': 'attachment; filename="botforge-' + body.language + '.zip"', 'Cache-Control': 'no-store' });
+          return res.end(archive(result.files));
+        }
         if (action === 'validate' && req.method === 'POST') {
           const issue = checkShape(body);
           return issue ? send(400, { message: issue }) : send(200, validate(body));
