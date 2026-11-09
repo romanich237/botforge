@@ -57,7 +57,7 @@ function createAssistant(config = {}) {
     busy = true; lastRequest = Date.now();
     try {
       let response;
-      try { response = await request(base.replace(/\/$/, '') + '/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify({ model, temperature: 0.2, max_tokens: 12000, reasoning_effort: 'low', response_format: { type: 'json_object' }, messages: [{ role: 'system', content: instructions }, { role: 'user', content: JSON.stringify({ description: prompt.trim(), currentScenario: JSON.parse(context) }) }] }), signal: AbortSignal.timeout(90000) }); }
+      try { response = await request(base.replace(/\/$/, '') + '/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify({ model, temperature: 0.2, max_tokens: 12000, reasoning_effort: 'low', response_format: { type: 'json_object' }, messages: [{ role: 'system', content: instructions }, { role: 'user', content: JSON.stringify({ description: prompt.trim(), currentScenario: JSON.parse(context) }) }] }), signal: AbortSignal.timeout(180000) }); }
       catch { throw error(502, 'ИИ не ответил вовремя. Схема не изменена, попробуйте ещё раз.'); }
       if (!response.ok) throw error(502, 'Сервис ИИ отклонил запрос (HTTP ' + response.status + '). Схема не изменена.');
       let result;
