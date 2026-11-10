@@ -6,6 +6,7 @@ const blockNames = { start: 'Старт', command: 'Команда', text: 'Те
 let disposeCanvas = null, canvasViewport = null, editorTab = 'canvas';
 const guideDialog = document.querySelector('#guide-dialog');
 let guideStep = 0;
+let blockSearch = '', focusNode = null;
 let projects = [], selectedId = sessionStorage.getItem('botforge.selected'), draft = null, dirty = false, busy = false, selectedNode = null, loadError = '', loading = true;
 function element(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
 function button(text, action, cls = '') { const b = element('button', cls, text); b.type = 'button'; b.onclick = () => Promise.resolve().then(action).catch(e => notify(e.message)); return b; }
@@ -15,7 +16,7 @@ function status(text) { document.querySelector('.local-badge').textContent = tex
 function changed() { dirty = true; status('Есть изменения'); refreshChecklist(); if (document.querySelector('#chat-mount')) paintChat(); }
 function leave() { if (busy) { notify('Дождитесь завершения сохранения'); return false; } return !dirty || confirm('Есть несохранённые изменения. Покинуть проект?'); }
 async function reload() { loading = true; loadError = ''; render(); try { projects = await api(''); } catch (e) { loadError = e.message; } loading = false; render(); }
-async function openProject(id) { if (!leave()) return; const project = await api('/' + id); draft = project; editorTab = 'canvas'; canvasViewport = null; selectedId = id; selectedNode = null; dirty = false; sessionStorage.setItem('botforge.selected', id); location.hash = 'builder'; render(); }
+async function openProject(id) { if (!leave()) return; const project = await api('/' + id); draft = project; blockSearch = ''; focusNode = null; editorTab = 'canvas'; canvasViewport = null; selectedId = id; selectedNode = null; dirty = false; sessionStorage.setItem('botforge.selected', id); location.hash = 'builder'; render(); }
 async function saveProject() {
   if (busy || !draft) return;
   busy = true; status('Сохраняется…');
@@ -94,7 +95,7 @@ function renderGuide() {
   const faq = element('section', 'faq'); faq.append(element('h2', '', 'Частые вопросы'));
   for (const [q, a] of [
     ['Как соединить блоки на телефоне?', 'Откройте вкладку «Схема», выберите блок и перейдите к его свойствам. В поле «Переход» выберите целевой блок. Для каждой кнопки доступен отдельный переход.'],
-    ['Как переместить или удалить связь?', 'Перетаскивайте блок за заголовок. Чтобы заменить переход, соедините тот же выход с другим блоком. Чтобы удалить связь, откройте список «Связи» в свойствах и нажмите × рядом с нужной парой.'],
+    ['Как переместить или удалить связь?', 'Потяните конец существующей линии к другому входу или свободному выходу. Отпускание на пустом поле сохраняет старую связь. Переход также можно изменить в свойствах блока. Для удаления откройте список «Связи» и нажмите ×.'],
     ['Когда сохраняются изменения?', 'Сохранение ручное: нажмите «Сохранить» и дождитесь статуса «Сохранено». Если произошла ошибка, изменения остаются на экране — повторите сохранение.'],
     ['Что уже работает, а что появится позже?', 'Работают схема, интерактивный чат и экспорт ZIP на Python, JavaScript, TypeScript и Go. Медиа, хостинг ботов и другие платформы запланированы на следующие этапы.'],
     ['Зачем нужны переменные?', 'Они хранят данные пользователя. Создайте переменную, например имя, в разделе «Переменные», выберите её в блоке ввода и используйте {имя} в сообщении.']
@@ -110,9 +111,43 @@ function connectBlocks(source, output, target) {
   draft.edges.push({ id: crypto.randomUUID(), source, output, target });
   changed(); render();
 }
+function focusBlock(id) {
+  if (!draft.nodes.some(n => n.id === id)) return;
+  selectedNode = id;
+  focusNode = id;
+  editorTab = 'canvas';
+  render();
+}
+function renderBlockSearch() {
+  const panel = element('section', 'block-search');
+  panel.setAttribute('aria-label', 'Поиск блоков');
+  const label = element('label', 'field');
+  label.append(element('span', '', 'Найти блок'));
+  const input = element('input'); input.type = 'search'; input.value = blockSearch;
+  input.placeholder = 'Тип, текст, команда или ID…'; label.append(input);
+  const results = element('div', 'block-search-results');
+  const count = element('p', 'muted'); count.setAttribute('role', 'status');
+  function update() {
+    blockSearch = input.value; results.replaceChildren();
+    const found = window.BotForgeEditor.searchNodes(draft, blockSearch, blockNames);
+    count.textContent = blockSearch.trim() ? 'Найдено блоков: ' + found.length : '';
+    for (const node of found) {
+      const text = (node.data.text || node.data.command || node.id).slice(0, 90);
+      results.append(button(blockNames[node.type] + ' · ' + text + ' →', () => focusBlock(node.id), 'block-search-result'));
+    }
+    results.hidden = !blockSearch.trim();
+  }
+  input.oninput = update;
+  input.onkeydown = event => {
+    if (event.key === 'Enter') { event.preventDefault(); results.querySelector('button')?.click(); }
+    if (event.key === 'Escape') { input.value = ''; update(); }
+  };
+  update(); panel.append(label, count, results); main.append(panel);
+}
 function renderBuilder() {
   const h = heading('Сценарий бота', 'Telegram · Добавьте блоки, соедините и сохраните');
   const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { editorTab = 'test'; render(); }), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions);
+  renderBlockSearch();
   const mobileTabs = element('div', 'editor-tabs'); mobileTabs.setAttribute('role', 'group'); mobileTabs.setAttribute('aria-label', 'Панели конструктора');
   for (const [id, text] of [['blocks', '+ Блоки'], ['canvas', '⌘ Схема'], ['properties', '⚙ Свойства'], ['test', '▷ Тест']]) { const b = button(text, () => { editorTab = id; render(); }, editorTab === id ? 'active' : ''); b.setAttribute('aria-pressed', String(editorTab === id)); mobileTabs.append(b); }
   main.append(mobileTabs);
@@ -142,6 +177,11 @@ function renderBuilder() {
   if (window.matchMedia('(max-width: 650px)').matches && editorTab !== 'canvas') return;
   disposeCanvas = window.BotForgeCanvas.mount(canvas, draft, blockNames, outputs, {
     selected: selectedNode,
+    focus: focusNode,
+    reconnect: (edge, connection) => {
+      if (!window.BotForgeEditor.reconnect(draft, edge.id, connection)) return notify('Этот выход уже занят или соединение недопустимо. Связь сохранена.');
+      changed(); render();
+    },
     current: () => previewState?.engine.project.id === draft.id && !previewStale() ? previewState.engine.current : null,
     select: id => { if (selectedNode !== id) { selectedNode = id; if (id) editorTab = 'properties'; render(); } },
     connect: c => connectBlocks(c.source, c.sourceHandle, c.target),
@@ -149,6 +189,7 @@ function renderBuilder() {
     edges: changes => { const removed = new Set(changes.filter(c => c.type === 'remove').map(c => c.id)); if (removed.size) { draft.edges = draft.edges.filter(e => !removed.has(e.id)); changed(); } },
     viewport: v => { canvasViewport = v; }
   }, canvasViewport);
+  focusNode = null;
 }
 function renderProperties(n, target = main) {
   const panel = element('section', 'properties'); panel.append(element('h2', '', 'Свойства · ' + blockNames[n.type]), element('p', 'property-tip', blockTips[n.type])); const d = n.data;
@@ -159,8 +200,18 @@ function renderProperties(n, target = main) {
   if (n.type === 'condition') { field(panel, 'Операция', d.operation, v => { d.operation = v; }, [['eq', 'Равно'], ['ne', 'Не равно'], ['contains', 'Содержит'], ['gt', 'Больше'], ['lt', 'Меньше']]); field(panel, 'Значение', d.value, v => { d.value = v; }); }
   if (n.type === 'buttons') {
     field(panel, 'Расположение', d.placement, v => { d.placement = v; }, [['inline', 'Под сообщением'], ['keyboard', 'Нижняя клавиатура']]);
-    for (const b of d.buttons) {
+    for (const [index, b] of d.buttons.entries()) {
       const row = element('div', 'button-row'); field(row, 'Подпись', b.label, v => { b.label = v; }); field(row, 'Действие', b.action, v => { b.action = v; draft.edges = draft.edges.filter(e => !(e.source === n.id && e.output === b.id)); changed(); render(); }, [['transition', 'Переход'], ['url', 'Ссылка']]);
+      const order = element('div', 'button-order');
+      for (const [offset, text] of [[-1, '↑ Выше'], [1, '↓ Ниже']]) {
+        const move = button(text, () => {
+          if (window.BotForgeEditor.moveButton(n, b.id, offset)) { changed(); render(); }
+        });
+        move.disabled = offset === -1 ? index === 0 : index === d.buttons.length - 1;
+        move.setAttribute('aria-label', 'Переместить кнопку «' + b.label + '» ' + (offset === -1 ? 'выше' : 'ниже'));
+        order.append(move);
+      }
+      row.append(order);
       if (b.action === 'url') field(row, 'URL', b.url, v => { b.url = v; }); row.append(button('Удалить кнопку', () => { d.buttons = d.buttons.filter(x => x.id !== b.id); draft.edges = draft.edges.filter(e => !(e.source === n.id && e.output === b.id)); changed(); render(); })); panel.append(row);
     }
     panel.append(button('+ Добавить кнопку', () => { d.buttons.push({ id: crypto.randomUUID(), label: 'Кнопка', action: 'transition' }); changed(); render(); }));

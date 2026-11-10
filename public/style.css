@@ -363,3 +363,13 @@ button.chat-choice, a.chat-choice { display: block; margin-top: 6px; width: 100%
 .ai-proposal ol { max-height: 210px; overflow-y: auto; padding-left: 22px; }
 .ai-error { padding: 12px; background: #fff0ed; color: #a24740; font-size: 12px; border-radius: 8px; }
 @media(max-width:650px) { #ai-dialog { padding: 20px; } #ai-dialog textarea { font-size: 16px; } .editor-actions button { flex: 1 1 28%; } }
+
+/* Editor search and button ordering */
+.block-search { margin: 16px 24px; min-width: 0; }
+.block-search .field { max-width: 460px; margin: 0; }
+.block-search-results { max-height: 220px; overflow-y: auto; display: grid; gap: 6px; margin-top: 8px; }
+.block-search-results[hidden] { display: none; }
+.block-search-result { text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.button-order { display: flex; gap: 8px; margin: 8px 0; }
+.button-order button { flex: 1; }
+button:disabled { cursor: default; opacity: 0.5; }

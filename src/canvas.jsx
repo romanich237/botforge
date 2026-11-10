@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ReactFlow, Background, Controls, MiniMap, Handle, Position, applyNodeChanges, applyEdgeChanges, MarkerType } from '@xyflow/react';
+import { ReactFlow, Background, Controls, MiniMap, Handle, Position, applyNodeChanges, applyEdgeChanges, MarkerType, useReactFlow, useNodesInitialized } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 const icons = { start: '▶', command: '/', text: 'T', buttons: '▦', input: '↵', condition: '◇', end: '■' };
@@ -11,6 +11,14 @@ function ScenarioNode({ data, selected }) {
     <div className="scenario-node-body">{data.text || (data.type === 'start' ? 'Запуск по /start' : data.type === 'end' ? 'Конец ветки' : 'Нажмите, чтобы настроить')}</div>
     {data.outputs.map(([id, label]) => <div className="scenario-output" key={id}><span>{label}</span><Handle id={id} type="source" position={Position.Right} aria-label={'Выход · ' + label} /></div>)}
   </div>;
+}
+function FocusNode({ id }) {
+  const ready = useNodesInitialized();
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    if (ready && id) fitView({ nodes: [{ id }], padding: 0.8, maxZoom: 1.2, duration: 250 });
+  }, [ready, id, fitView]);
+  return null;
 }
 const nodeTypes = { scenario: ScenarioNode };
 window.BotForgeCanvas = {
@@ -25,17 +33,20 @@ window.BotForgeCanvas = {
         setEdges(project.edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.output, type: 'smoothstep', markerEnd: { type: MarkerType.ArrowClosed } })));
       };
       return <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes}
-        defaultViewport={viewport || { x: 70, y: 90, zoom: 1 }} fitView={!viewport && project.nodes.length > 0} fitViewOptions={{ padding: 0.25, maxZoom: 1 }}
+        defaultViewport={viewport || { x: 70, y: 90, zoom: 1 }} fitView={!callbacks.focus && !viewport && project.nodes.length > 0} fitViewOptions={{ padding: 0.25, maxZoom: 1 }}
         minZoom={0.2} maxZoom={2} snapToGrid snapGrid={[16, 16]}
         onNodesChange={changes => { setNodes(current => applyNodeChanges(changes, current)); callbacks.move(changes); }}
         onEdgesChange={changes => { setEdges(current => applyEdgeChanges(changes, current)); callbacks.edges(changes); }}
         onConnect={connection => callbacks.connect(connection)}
+        edgesReconnectable reconnectRadius={18}
+        onReconnect={(edge, connection) => callbacks.reconnect(edge, connection)}
         onNodeClick={(_, node) => callbacks.select(node.id)}
         onPaneClick={() => callbacks.select(null)}
         onMoveEnd={(_, next) => callbacks.viewport(next)}
         deleteKeyCode={null} selectionKeyCode="Shift" panOnScroll zoomOnScroll={false} zoomOnPinch
         proOptions={{ hideAttribution: true }}
         ariaLabelConfig={{ 'controls.zoomIn.ariaLabel': 'Приблизить', 'controls.zoomOut.ariaLabel': 'Отдалить', 'controls.fitView.ariaLabel': 'Показать всю схему', 'controls.interactive.ariaLabel': 'Переключить перемещение блоков' }}>
+        <FocusNode id={callbacks.focus}/>
         <Background color="#d6dce9" gap={20} size={1.2}/>
         <Controls showInteractive={false}/>
         <MiniMap pannable zoomable nodeColor={node => node.data.type === 'start' ? '#56b897' : '#a9bdf9'} maskColor="#f2f5fa99"/>
