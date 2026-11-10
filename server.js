@@ -10,7 +10,15 @@ const { createStorage } = require('./storage');
 function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, 'data'), options = {}) {
   const assistant = createAssistant(options.ai);
   const publicOrigin = options.publicOrigin ?? process.env.PUBLIC_ORIGIN;
-  const files = { '/editor.js': ['editor.js', 'text/javascript; charset=utf-8'], '/': ['index.html', 'text/html; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/canvas.js': ['canvas.js', 'text/javascript; charset=utf-8'], '/canvas.css': ['canvas.css', 'text/css; charset=utf-8'], '/guide.js': ['guide.js', 'text/javascript; charset=utf-8'], '/runtime.js': ['runtime.js', 'text/javascript; charset=utf-8'], '/preview.js': ['preview.js', 'text/javascript; charset=utf-8'], '/languages.js': ['languages.js', 'text/javascript; charset=utf-8'], '/layout.js': ['layout.js', 'text/javascript; charset=utf-8'], '/ai.js': ['ai.js', 'text/javascript; charset=utf-8'] };
+  const files = { '/logo.png': ['logo.png', 'image/png'],
+    '/favicon.ico': ['favicon.ico', 'image/x-icon'],
+    '/favicon-16x16.png': ['favicon-16x16.png', 'image/png'],
+    '/favicon-32x32.png': ['favicon-32x32.png', 'image/png'],
+    '/apple-touch-icon.png': ['apple-touch-icon.png', 'image/png'],
+    '/icon-192.png': ['icon-192.png', 'image/png'],
+    '/icon-512.png': ['icon-512.png', 'image/png'],
+    '/site.webmanifest': ['site.webmanifest', 'application/manifest+json'],
+    '/editor.js': ['editor.js', 'text/javascript; charset=utf-8'], '/': ['index.html', 'text/html; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/canvas.js': ['canvas.js', 'text/javascript; charset=utf-8'], '/canvas.css': ['canvas.css', 'text/css; charset=utf-8'], '/guide.js': ['guide.js', 'text/javascript; charset=utf-8'], '/runtime.js': ['runtime.js', 'text/javascript; charset=utf-8'], '/preview.js': ['preview.js', 'text/javascript; charset=utf-8'], '/languages.js': ['languages.js', 'text/javascript; charset=utf-8'], '/layout.js': ['layout.js', 'text/javascript; charset=utf-8'], '/ai.js': ['ai.js', 'text/javascript; charset=utf-8'] };
   const storage = createStorage(dataDir);
   const server = http.createServer(async (req, res) => {
     const send = (status, body) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(body)); };
