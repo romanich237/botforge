@@ -37,17 +37,17 @@ async function sendPreview(event, label) {
     if (state !== previewState) return;
     applyPreviewEvents(state.engine.handle(event));
   } catch (error) { state.history.push({ role: 'error', text: 'Ошибка сценария: ' + error.message, nodeId: state.engine.current }); }
-  finally { previewBusy = false; paintChat(); document.querySelector('#chat-mount textarea')?.focus({ preventScroll: true }); disposeCanvas?.refresh?.(); }
+  finally { previewBusy = false; paintChat(); document.querySelector('#chat-mount textarea')?.focus({ preventScroll: true }); disposeCanvas?.refresh?.(); window.BotForgeTour?.update(); }
 }
 function paintChat() {
   const host = document.querySelector('#chat-mount'); if (!host || !draft) return;
   host.replaceChildren();
   if (!previewState || previewState.engine.project.id !== draft.id) resetPreview();
   const stale = previewStale();
-  const head = element('div', 'chat-heading'); const info = element('div'); info.append(element('strong', '', draft.name), element('small', '', 'Предпросмотр · локальный диалог')); head.append(element('span', 'chat-avatar', '▣'), info, button('↻', () => { resetPreview(); paintChat(); disposeCanvas?.refresh?.(); }, 'reset-chat')); head.lastChild.setAttribute('aria-label', 'Сбросить историю, шаг и переменные'); host.append(head);
+  const head = element('div', 'chat-heading'); const info = element('div'); info.append(element('strong', '', draft.name), element('small', '', 'Предпросмотр · локальный диалог')); head.append(element('span', 'chat-avatar', '▣'), info, button('↻', () => { resetPreview(); paintChat(); disposeCanvas?.refresh?.(); window.BotForgeTour?.update(); }, 'reset-chat')); head.lastChild.setAttribute('aria-label', 'Сбросить историю, шаг и переменные'); host.append(head);
   if (stale) { const warning = element('div', 'chat-warning'); warning.append(element('p', '', 'Сценарий изменён. Перезапустите тест, чтобы использовать новые блоки и настройки.'), button('Перезапустить тест', () => { resetPreview(); paintChat(); })); host.append(warning); }
   const history = element('div', 'chat-history'); history.setAttribute('role', 'log'); history.setAttribute('aria-label', 'История предпросмотра'); history.setAttribute('aria-live', 'polite');
-  if (!previewState.history.length) { const empty = element('div', 'chat-empty'); empty.append(element('strong', '', 'Проверьте своего бота'), element('p', '', 'Нажмите /start, затем отвечайте на вопросы и выбирайте кнопки.'), button('▶ Запустить /start', () => sendPreview({ text: '/start' }, '/start'), 'primary')); history.append(empty); }
+  if (!previewState.history.length) { const empty = element('div', 'chat-empty'); empty.append(element('strong', '', 'Проверьте своего бота'), element('p', '', 'Нажмите /start, затем отвечайте на вопросы и выбирайте кнопки.'), Object.assign(button('▶ Запустить /start', () => sendPreview({ text: '/start' }, '/start'), 'primary'), { id: 'preview-start' })); history.append(empty); }
   for (const m of previewState.history) {
     const bubble = element('div', 'chat-message role-' + m.role); bubble.append(element('span', '', m.text));
     if (m.nodeId) bubble.append(button('Перейти к блоку →', () => { selectedNode = m.nodeId; editorTab = 'properties'; location.hash = 'builder'; render(); }));

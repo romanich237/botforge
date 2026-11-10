@@ -24,8 +24,9 @@ function createStorage(dataDir) {
       );
       CREATE INDEX IF NOT EXISTS projects_updated ON projects(updated_at DESC);
     `);
-    const insert = db.prepare('INSERT INTO projects (id, revision, updated_at, document) VALUES (?, ?, ?, ?)');
-    const insertProject = project => insert.run(project.id, project.revision, project.updatedAt, JSON.stringify(project));
+    if (!db.pragma('table_info(projects)').some(c => c.name === 'owner_id')) db.exec("ALTER TABLE projects ADD COLUMN owner_id TEXT NOT NULL DEFAULT 'legacy'");
+    const insert = db.prepare('INSERT INTO projects (id, revision, updated_at, document, owner_id) VALUES (?, ?, ?, ?, ?)');
+    const insertProject = (project, owner = 'legacy') => insert.run(project.id, project.revision, project.updatedAt, JSON.stringify(project), owner);
 
     // One transaction and a persistent marker prevent partial imports and resurrection after deletion.
     db.transaction(() => {
@@ -44,31 +45,31 @@ function createStorage(dataDir) {
       db.prepare("INSERT INTO metadata (key, value) VALUES ('json_import_v1', 'done')").run();
     }).immediate();
 
-    const read = db.prepare('SELECT document FROM projects WHERE id = ?');
-    const list = db.prepare('SELECT document FROM projects ORDER BY updated_at DESC, id');
-    const update = db.prepare('UPDATE projects SET revision = ?, updated_at = ?, document = ? WHERE id = ? AND revision = ?');
-    const remove = db.prepare('DELETE FROM projects WHERE id = ?');
+    const read = db.prepare('SELECT document FROM projects WHERE id = ? AND owner_id = ?');
+    const list = db.prepare('SELECT document FROM projects WHERE owner_id = ? ORDER BY updated_at DESC, id');
+    const update = db.prepare('UPDATE projects SET revision = ?, updated_at = ?, document = ? WHERE id = ? AND revision = ? AND owner_id = ?');
+    const remove = db.prepare('DELETE FROM projects WHERE id = ? AND owner_id = ?');
     return {
-      list: () => list.all().map(row => JSON.parse(row.document)),
-      get(id) {
-        const row = read.get(id);
+      list: (owner = 'legacy') => list.all(owner).map(row => JSON.parse(row.document)),
+      get(id, owner = 'legacy') {
+        const row = read.get(id, owner);
         if (!row) throw notFound();
         return JSON.parse(row.document);
       },
-      create(project) { insertProject(project); return project; },
-      update(id, body) {
+      create(project, owner = 'legacy') { insertProject(project, owner); return project; },
+      update(id, body, owner = 'legacy') {
         if (!Number.isSafeInteger(body.revision) || body.revision < 1) throw Object.assign(Error('Некорректная ревизия проекта'), { status: 400 });
         return db.transaction(() => {
           const project = { ...body, id, revision: body.revision + 1, updatedAt: Date.now() };
-          const result = update.run(project.revision, project.updatedAt, JSON.stringify(project), id, body.revision);
+          const result = update.run(project.revision, project.updatedAt, JSON.stringify(project), id, body.revision, owner);
           if (!result.changes) {
-            if (!read.get(id)) throw notFound();
+            if (!read.get(id, owner)) throw notFound();
             throw Object.assign(Error('Проект изменён в другой вкладке. Скопируйте свои изменения перед перезагрузкой.'), { status: 409 });
           }
           return project;
         }).immediate();
       },
-      delete(id) { if (!remove.run(id).changes) throw notFound(); },
+      delete(id, owner = 'legacy') { if (!remove.run(id, owner).changes) throw notFound(); },
       close: () => db.close()
     };
   } catch (error) {
