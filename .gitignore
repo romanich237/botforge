@@ -6,3 +6,4 @@ public/canvas.js
 public/canvas.css
 __pycache__/
 *.pyc
+/test/
