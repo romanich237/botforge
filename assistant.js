@@ -15,7 +15,7 @@ condition: {variable:'name',operation:'eq'|'ne'|'contains'|'gt'|'lt',value:'comp
 end: {}, no outputs.
 Edge: {source:nodeId,output:string,target:nodeId}. Only one edge per source/output. No missing required edges. All blocks reachable from start or commands. Avoid automatic cycles.
 Variable: {name:string,type:'text'|'number',initial:string|number}. Unique names use letters, digits and underscore, starting with letter or underscore. Declare all variables referenced in messages as {name}.
-Use the user's language, Russian by default. Generate a complete connected scenario. If an existing scenario is supplied, incorporate changes requested by the user without dropping unrelated useful branches. No external links unless the user supplied them. Never include API keys, bot tokens or credentials. This is a draft for review, not an instruction to deploy or contact users.`;
+Use the user's language, Russian by default. Generate a complete connected scenario. Before producing JSON, map every requested step to blocks, variables and both condition branches. Cover all requested commands, button outcomes, validation errors and return paths. Reuse shared continuations; keep the smallest complete graph. Button transitions do not assign variables: collect a choice with an input block or keep distinct branches. The only supported operations are the listed blocks: there is no payment, database, HTTP, AI-chat or admin-notification block. Never claim those integrations work; explain any missing capability or business fact in the Russian summary and use an honest draft confirmation. Built-in /help and /cancel already work; do not create reserved command nodes. No external links unless the user supplied them. Never include API keys, bot tokens or credentials. This is a draft for review, not an instruction to deploy or contact users.`;
 function parseScenario(content) {
   const text = content.trim().replace(/^\uFEFF/, '');
   try { return JSON.parse(text); } catch {}
@@ -53,7 +53,7 @@ function createAssistant(config = {}) {
     if (typeof prompt !== 'string' || !prompt.trim() || prompt.length > 4000) throw error(400, 'Опишите сценарий: от 1 до 4000 символов.');
     const shape = checkShape(project); if (shape) throw error(400, shape);
     const mode = options.mode ?? (project.nodes.length ? 'edit' : 'create');
-    if (!['edit', 'create'].includes(mode)) throw error(400, 'Выберите изменение или создание сценария.');
+    if (!['edit', 'create', 'question'].includes(mode)) throw error(400, 'Выберите изменение или создание сценария.');
     const selectedNodeId = options.selectedNodeId ?? null;
     if (selectedNodeId !== null && !project.nodes.some(n => n.id === selectedNodeId)) throw error(400, 'Выбранный блок больше не существует.');
     if (project.nodes.length > 80) throw error(400, 'ИИ-помощник пока поддерживает схемы до 80 блоков.');
@@ -62,9 +62,12 @@ function createAssistant(config = {}) {
     if (busy || Date.now() - lastRequest < (config.cooldown ?? 10000)) throw error(429, 'ИИ уже обрабатывает запрос или ещё не готов к следующему. Попробуйте через 10 секунд.');
     if (new URL(base).protocol !== 'https:') throw error(503, 'Для ИИ нужен HTTPS API.');
     busy = true; lastRequest = Date.now();
+    const signal = AbortSignal.timeout(180000);
+    const messages = [{ role: 'system', content: instructions + (mode === 'edit' ? '\n' + editInstructions : mode === 'question' ? '\nQUESTION MODE overrides the graph output contract: return ONLY {answer:string}. Answer the question about the existing bot and selected block in Russian. Do not return nodes, do not modify or claim to modify the bot. Explain only supported capabilities and acknowledge unsupported integrations. Keep the answer concise and useful.' : '') }, { role: 'user', content: JSON.stringify({ description: prompt.trim(), mode, selectedNodeId, currentScenario: mode !== 'create' ? JSON.parse(context) : null }) }];
     try {
+      for (let attempt = 0; attempt < 2; attempt++) {
       let response;
-      try { response = await request(base.replace(/\/$/, '') + '/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify({ model, temperature: 0.2, max_tokens: 12000, reasoning_effort: 'low', response_format: { type: 'json_object' }, messages: [{ role: 'system', content: instructions + (mode === 'edit' ? '\n' + editInstructions : '') }, { role: 'user', content: JSON.stringify({ description: prompt.trim(), mode, selectedNodeId, currentScenario: JSON.parse(context) }) }] }), signal: AbortSignal.timeout(180000) }); }
+      try { response = await request(base.replace(/\/$/, '') + '/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify({ model, temperature: 0.2, max_tokens: 12000, reasoning_effort: 'low', response_format: { type: 'json_object' }, messages }), signal }); }
       catch { throw error(502, 'ИИ не ответил вовремя. Схема не изменена, попробуйте ещё раз.'); }
       if (!response.ok) throw error(502, 'Сервис ИИ отклонил запрос (HTTP ' + response.status + '). Схема не изменена.');
       let result;
@@ -73,15 +76,27 @@ function createAssistant(config = {}) {
       if (choice?.finish_reason === 'length' || choice?.finish_reason === 'max_tokens') throw error(502, 'Ответ ИИ оборван по лимиту длины. Схема не изменена. Сократите запрос или создавайте сценарий по частям.');
       const content = choice?.message?.content;
       if (typeof content !== 'string' || content.length > 250000) throw error(502, 'ИИ не вернул сценарий. Попробуйте уточнить описание.');
+      try {
       const parsed = parseScenario(content);
+      if (mode === 'question') { if (typeof parsed?.answer !== 'string' || !parsed.answer.trim() || parsed.answer.length > 6000) throw error(502, 'ИИ не вернул ответ на вопрос.'); return { mode, answer: parsed.answer }; }
       if (!parsed || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges) || !Array.isArray(parsed.variables) || parsed.nodes.length > 60) throw error(502, 'ИИ вернул неверную структуру сценария.');
       const draft = mergeProposal(project, parsed, mode, randomUUID);
       if (draft.nodes.length > 80) throw error(502, 'После изменения получится больше 80 блоков. Разделите сценарий на проекты.');
       const problem = checkShape(draft); if (problem) throw error(502, 'ИИ-сценарий не прошёл проверку: ' + problem);
       const validation = validate(draft);
-      if (!validation.valid) throw error(502, 'ИИ-сценарий требует уточнения: ' + validation.errors.slice(0, 3).map(e => e.message).join('; '));
+      if (!validation.valid) throw error(502, 'ИИ-сценарий требует уточнения: ' + validation.errors.slice(0, 8).map(e => e.code + ' [' + (e.nodeId || 'project') + ']: ' + e.message).join('; '));
+      if (mode === 'create' && validation.warnings.some(w => w.code === 'UNREACHABLE')) throw error(502, 'Недостижимые блоки: ' + validation.warnings.filter(w => w.code === 'UNREACHABLE').map(w => w.nodeId).join(', '));
+      const automatic = new Set(draft.nodes.filter(n => !['input', 'buttons', 'end'].includes(n.type)).map(n => n.id));
+      const visited = new Set(), visiting = new Set();
+      const cycle = id => { if (!automatic.has(id) || visited.has(id)) return false; if (visiting.has(id)) return true; visiting.add(id); if (draft.edges.filter(e => e.source === id).some(e => cycle(e.target))) return true; visiting.delete(id); visited.add(id); return false; };
+      if ([...automatic].some(cycle)) throw error(502, 'Автоматический цикл без ожидания ввода или кнопки. Добавьте ожидание пользователя или завершите ветку.');
       const arranged = positionProposal(project, draft, mode);
       return { summary: typeof parsed.summary === 'string' ? parsed.summary.slice(0, 600) : 'Сценарий подготовлен. Проверьте блоки перед применением.', mode, changes: changes(project, arranged), nodes: arranged.nodes, edges: arranged.edges, variables: arranged.variables, warnings: validation.warnings };
+      } catch (problem) {
+        if (attempt || problem.status !== 502 || signal.aborted) throw problem;
+        messages.push({ role: 'assistant', content }, { role: 'user', content: 'Исправь ошибки проверки: ' + problem.message + '. Верни один полный исправленный JSON в том же режиме. В edit верни исправленный PATCH относительно исходного currentScenario, не предыдущей попытки. Сохрани требования пользователя и не добавляй неподдерживаемые функции.' });
+      }
+      }
     } finally { busy = false; }
   }
   return { status, generate };

@@ -26,13 +26,14 @@ window.BotForgeCanvas = {
     const root = createRoot(container);
     let refresh = () => {};
     function Canvas() {
+      const [flow, setFlow] = useState(null);
       const [nodes, setNodes] = useState(project.nodes.map(n => ({ id: n.id, type: 'scenario', position: { x: n.x, y: n.y }, selected: n.id === callbacks.selected, data: { title: names[n.type], active: callbacks.current?.() === n.id, type: n.type, text: n.data.text || n.data.command, outputs: outputs(n) } })));
       const [edges, setEdges] = useState(project.edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.output, type: 'smoothstep', markerEnd: { type: MarkerType.ArrowClosed }, style: { strokeWidth: 2 } })));
       refresh = () => {
         setNodes(current => current.map(node => { const n = project.nodes.find(n => n.id === node.id); return n ? { ...node, data: { title: names[n.type], active: callbacks.current?.() === n.id, type: n.type, text: n.data.text || n.data.command, outputs: outputs(n) } } : node; }));
         setEdges(project.edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.output, type: 'smoothstep', markerEnd: { type: MarkerType.ArrowClosed } })));
       };
-      return <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes}
+      return <ReactFlow onInit={setFlow} onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; }} onDrop={event => { event.preventDefault(); const type = event.dataTransfer.getData('application/botforge-block'); if (flow && type) callbacks.drop(type, flow.screenToFlowPosition({ x: event.clientX, y: event.clientY })); }} nodes={nodes} edges={edges} nodeTypes={nodeTypes}
         defaultViewport={viewport || { x: 70, y: 90, zoom: 1 }} fitView={!callbacks.focus && !viewport && project.nodes.length > 0} fitViewOptions={{ padding: 0.25, maxZoom: 1 }}
         minZoom={0.2} maxZoom={2} snapToGrid snapGrid={[16, 16]}
         onNodesChange={changes => { setNodes(current => applyNodeChanges(changes, current)); callbacks.move(changes); }}
