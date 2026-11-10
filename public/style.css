@@ -373,3 +373,18 @@ button.chat-choice, a.chat-choice { display: block; margin-top: 6px; width: 100%
 .button-order { display: flex; gap: 8px; margin: 8px 0; }
 .button-order button { flex: 1; }
 button:disabled { cursor: default; opacity: 0.5; }
+.ai-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 5px; background: #f3f5fb; border-radius: 10px; margin: 18px 0 12px; }
+.ai-modes button { background: transparent; border: 0; color: #6b7790; font-size: 12px; }
+.ai-modes button.active { background: white; color: #6850b4; box-shadow: 0 2px 5px #2532540a; font-weight: 600; }
+.ai-context { font-size: 12px; color: #6f7c92; line-height: 1.7; }
+.ai-selected { background: #eef2ff; color: #5c6da5; border-radius: 8px; padding: 10px 12px; font-size: 12px; overflow-wrap: anywhere; }
+.ai-examples { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
+.ai-examples button { font-size: 11px; text-align: left; background: #f6f5fc; border-color: #edeaf8; padding: 8px 10px; }
+.ai-change-counts { border-block: 1px solid #e6eaf3; padding: 8px 0; margin: 14px 0; }
+.ai-change-counts p { font-size: 11px; color: #6d7892; margin: 5px 0; }
+.ai-change-list { list-style: none; padding: 0; max-height: 260px; overflow-y: auto; }
+.ai-change-list li { padding: 9px 12px; margin: 7px 0; border-radius: 7px; background: #eef3ff; }
+.ai-change-list li.change-added { background: #edf7f2; }
+.ai-change-list li.change-removed { background: #fff0ee; }
+.ai-change-list li p { margin: 4px 0 0; }
+@media(max-width:650px) { .ai-modes button { font-size: 11px; min-height: 44px; } .ai-examples button { width: 100%; } }

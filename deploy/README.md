@@ -18,7 +18,7 @@
 
 Создать системного пользователя `botforge` без shell. Подготовить `/etc/botforge.env` с настоящим HTTPS-origin. Установить `botforge.service` в `/etc/systemd/system/`.
 
-В новый каталог релиза положить `server.js`, `storage.js`, `project.js`, `exporter.js`, `assistant.js`, `package.json`, `package-lock.json`, каталоги `public`, `src`, `templates`. Выполнить:
+В новый каталог релиза положить `server.js`, `storage.js`, `project.js`, `exporter.js`, `assistant.js`, `ai-project.js`, `package.json`, `package-lock.json`, каталоги `public`, `src`, `templates`. Выполнить:
 
 ```sh
 npm ci

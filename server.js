@@ -39,7 +39,7 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, 'da
       const [, id, action] = match;
       if (id && action === 'ai' && req.method === 'POST') {
         storage.get(id);
-        return send(200, await assistant.generate(body?.project, body?.prompt));
+        return send(200, await assistant.generate(body?.project, body?.prompt, { mode: body?.mode, selectedNodeId: body?.selectedNodeId }));
       }
       const run = async () => {
         if (!id && req.method === 'GET') {
