@@ -32,7 +32,7 @@ function field(parent, label, value, onChange, options) {
   if (options) for (const [id, text] of options) { const o = element('option', '', text); o.value = id; input.append(o); }
   input.value = value ?? ''; input.oninput = () => { onChange(input.value); changed(); disposeCanvas?.refresh?.(); }; wrap.append(input); parent.append(wrap); return input;
 }
-function heading(title, description) { const h = element('div', 'page-heading'); const t = element('div'); t.append(element('h1', '', title), element('p', '', description)); h.append(t); main.append(h); return h; }
+function heading(title, description, target = main) { const h = element('div', 'page-heading'); const t = element('div'); t.append(element('h1', '', title), element('p', '', description)); h.append(t); target.append(h); return h; }
 function renderProjects() {
   const h = heading('Мои проекты', 'От первой идеи до своего Telegram-бота.');
   h.append(button('✦ Создать с ИИ', async () => { if (!leave()) return; const p = await api('', 'POST', { name: 'Новый бот с ИИ' }); projects.unshift(p); dirty = false; await openProject(p.id); openAssistant(); }, 'ai-trigger'));
@@ -90,10 +90,10 @@ function renderGuideStep() {
   guideDialog.append(header, dots, content, element('p', 'muted', 'Шаг ' + (guideStep + 1) + ' из ' + steps.length), actions);
   if (guideDialog.open) actions.lastChild.focus();
 }
-function renderGuide() {
-  const h = heading('Как пользоваться BotForge', 'Короткий путь от пустого проекта до связанного сценария.'); h.append(button('Пошаговое обучение', openGuide, 'primary'));
-  const intro = element('section', 'guide-intro'); intro.append(element('div', 'welcome-icon', '↗'), element('h2', '', 'Попробуйте на готовом примере'), element('p', '', 'Четыре блока, две кнопки и готовые связи. Пример создаётся отдельным проектом — ваши сценарии сохранятся.'), button('Создать учебный проект', createExample, 'primary')); main.append(intro);
-  const list = element('div', 'guide-grid'); window.BotForgeGuide.steps.forEach((step, i) => { const card = element('article', 'guide-card'); card.append(element('span', 'guide-index', String(i + 1).padStart(2, '0')), element('h2', '', step.title), element('p', '', step.text)); list.append(card); }); main.append(list);
+function renderGuide(target = main) {
+  const h = heading('Как пользоваться BotForge', 'Короткий путь от пустого проекта до связанного сценария.', target); h.append(button('Пошаговое обучение', openGuide, 'primary'));
+  const intro = element('section', 'guide-intro'); intro.append(element('div', 'welcome-icon', '↗'), element('h2', '', 'Попробуйте на готовом примере'), element('p', '', 'Четыре блока, две кнопки и готовые связи. Пример создаётся отдельным проектом — ваши сценарии сохранятся.'), button('Создать учебный проект', createExample, 'primary')); target.append(intro);
+  const list = element('div', 'guide-grid'); window.BotForgeGuide.steps.forEach((step, i) => { const card = element('article', 'guide-card'); card.append(element('span', 'guide-index', String(i + 1).padStart(2, '0')), element('h2', '', step.title), element('p', '', step.text)); list.append(card); }); target.append(list);
   const faq = element('section', 'faq'); faq.append(element('h2', '', 'Частые вопросы'));
   for (const [q, a] of [
     ['Как соединить блоки на телефоне?', 'Откройте вкладку «Схема», выберите блок и перейдите к его свойствам. В поле «Переход» выберите целевой блок. Для каждой кнопки доступен отдельный переход.'],
@@ -101,12 +101,12 @@ function renderGuide() {
     ['Когда сохраняются изменения?', 'Сохранение ручное: нажмите «Сохранить» и дождитесь статуса «Сохранено». Если произошла ошибка, изменения остаются на экране — повторите сохранение.'],
     ['Что уже работает, а что появится позже?', 'Работают схема, интерактивный чат и экспорт ZIP на Python, JavaScript, TypeScript и Go. Медиа, хостинг ботов и другие платформы запланированы на следующие этапы.'],
     ['Зачем нужны переменные?', 'Они хранят данные пользователя. Создайте переменную, например имя, в разделе «Переменные», выберите её в блоке ввода и используйте {имя} в сообщении.']
-  ]) { const item = element('details'); item.append(element('summary', '', q), element('p', '', a)); faq.append(item); } main.append(faq);
+  ]) { const item = element('details'); item.append(element('summary', '', q), element('p', '', a)); faq.append(item); } target.append(faq);
 }
 function outputs(node) { if (node.type === 'end') return []; if (node.type === 'condition') return [['yes', 'Да'], ['no', 'Нет']]; if (node.type === 'buttons') return (node.data.buttons || []).filter(b => b.action === 'transition').map(b => [b.id, b.label]); return [['next', 'Далее']]; }
 function addNode(type, position) {
   if (!Object.hasOwn(blockNames, type) || (type === 'start' && draft.nodes.some(n => n.type === 'start'))) return;
-  const id = crypto.randomUUID(); draft.nodes.push({ id, type, x: position?.x ?? draft.nodes.length % 3 * 320, y: position?.y ?? Math.floor(draft.nodes.length / 3) * 240, data: { text: '', command: '', variable: '', validation: 'text', error: 'Проверьте введённое значение', operation: 'eq', value: '', placement: 'inline', buttons: [] } }); selectedNode = id; editorTab = 'properties'; changed(); render();
+  const id = crypto.randomUUID(); draft.nodes.push({ id, type, x: position?.x ?? draft.nodes.length % 3 * 320, y: position?.y ?? Math.floor(draft.nodes.length / 3) * 240, data: { text: '', command: '', variable: '', validation: 'text', error: 'Проверьте введённое значение', operation: 'eq', value: '', placement: 'inline', buttons: [] } }); selectedNode = id; changed(); openWorkspace('builder', 'properties');
 }
 function connectBlocks(source, output, target) {
   if (!draft.nodes.some(n => n.id === target) || !draft.nodes.some(n => n.id === source && outputs(n).some(o => o[0] === output))) return;
@@ -118,8 +118,7 @@ function focusBlock(id) {
   if (!draft.nodes.some(n => n.id === id)) return;
   selectedNode = id;
   focusNode = id;
-  editorTab = 'canvas';
-  render();
+  openWorkspace('builder', 'properties');
 }
 function renderBlockSearch() {
   const panel = element('section', 'block-search');
@@ -147,14 +146,28 @@ function renderBlockSearch() {
   };
   update(); panel.append(label, count, results); main.append(panel);
 }
-function renderBuilder() {
+function openWorkspace(page, tab = 'canvas') {
+  editorTab = tab;
+  if (aiDialog.open) closeAssistant();
+  if (location.hash.slice(1) === page) render(); else location.hash = page;
+}
+function renderWorkspacePanel(page, target) {
+  const top = element('div', 'panel-heading'); top.append(element('strong', '', titles[page]), button('×', () => openWorkspace('builder'), 'icon-button')); top.lastChild.setAttribute('aria-label', 'Закрыть панель'); target.append(top);
+  if (page === 'behavior') renderBehavior(target);
+  else if (page === 'variables') renderVariables(target);
+  else if (page === 'export') renderExport(target);
+  else if (page === 'guide') renderGuide(target);
+  else if (page === 'settings') { heading('Настройки проекта', 'Название и описание', target); const panel = element('section', 'properties'); field(panel, 'Название', draft.name, v => { draft.name = v; }); field(panel, 'Описание', draft.description, v => { draft.description = v; }); target.append(panel); }
+  if (['behavior','variables','settings'].includes(page)) target.append(button('Сохранить изменения', saveProject, 'primary'));
+}
+function renderBuilder(page = 'builder') {
   const h = heading('Сценарий бота', 'Telegram · Добавьте блоки, соедините и сохраните');
-  const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { editorTab = 'test'; render(); }), button('↓ Полный ZIP', downloadProjectBundle), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions); for (const b of actions.children) { if (b.textContent === 'Сохранить') b.dataset.tour = 'save'; if (b.textContent.includes('Предпросмотр')) b.dataset.tour = 'preview'; }
+  const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { openWorkspace('testing', 'test'); }), button('↓ Полный ZIP', downloadProjectBundle), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions); for (const b of actions.children) { if (b.textContent === 'Сохранить') b.dataset.tour = 'save'; if (b.textContent.includes('Предпросмотр')) b.dataset.tour = 'preview'; }
   renderBlockSearch();
   const mobileTabs = element('div', 'editor-tabs'); mobileTabs.setAttribute('role', 'group'); mobileTabs.setAttribute('aria-label', 'Панели конструктора');
-  for (const [id, text] of [['blocks', '+ Блоки'], ['canvas', '⌘ Схема'], ['properties', '⚙ Свойства'], ['test', '▷ Тест']]) { const b = button(text, () => { editorTab = id; render(); }, editorTab === id ? 'active' : ''); b.setAttribute('aria-pressed', String(editorTab === id)); mobileTabs.append(b); }
+  for (const [id, text] of [['blocks', '+ Блоки'], ['canvas', '⌘ Схема'], ['properties', '⚙ Свойства'], ['test', '▷ Тест']]) { const b = button(text, () => { openWorkspace(id === 'test' ? 'testing' : 'builder', id); }, editorTab === id ? 'active' : ''); b.setAttribute('aria-pressed', String(editorTab === id)); mobileTabs.append(b); }
   main.append(mobileTabs);
-  const builder = element('section', 'builder editor-shell tab-' + editorTab);
+  const builder = element('section', 'builder editor-shell tab-' + (!['builder','testing'].includes(page) ? 'properties' : page === 'testing' ? 'test' : editorTab));
   const library = element('aside', 'library'); library.append(element('div', 'panel-eyebrow', 'ИНСТРУМЕНТЫ'), element('h2', '', 'Блоки сценария'), element('p', 'muted', 'Перетащите на схему или нажмите'));
   const icons = { start: '▶', command: '/', text: 'T', buttons: '▦', input: '↵', condition: '◇', end: '■' };
   const levels = element('div', 'library-levels');
@@ -166,32 +179,35 @@ function renderBuilder() {
     b.ondragstart = event => { event.dataTransfer.setData('application/botforge-block', type); event.dataTransfer.effectAllowed = 'copy'; }; b.title = blockTips[type]; b.setAttribute('aria-label', 'Добавить блок «' + name + '»'); library.append(b);
   }
   const layers = element('details', 'board-layers'); layers.open = true; layers.append(element('summary', '', 'Блоки на доске · ' + draft.nodes.length));
-  for (const node of draft.nodes) { const row = button(icons[node.type] + '  ' + (node.data.text || node.data.command || blockNames[node.type]).slice(0, 34), () => { selectedNode = node.id; focusNode = node.id; editorTab = 'properties'; render(); }, node.id === selectedNode ? 'active' : ''); row.title = blockNames[node.type]; layers.append(row); }
+  for (const node of draft.nodes) { const row = button(icons[node.type] + '  ' + (node.data.text || node.data.command || blockNames[node.type]).slice(0, 34), () => { selectedNode = node.id; focusNode = node.id; openWorkspace('builder', 'properties'); }, node.id === selectedNode ? 'active' : ''); row.title = blockNames[node.type]; layers.append(row); }
   library.append(layers);
   const search = document.querySelector('.block-search'); if (search) library.append(search);
   const hint = element('div', 'library-hint'); hint.append(element('strong', '', 'Соединяйте идеи'), element('p', '', 'Потяните от точки справа к входу другого блока. Каждая кнопка — отдельная ветка.')); library.append(hint);
   const center = element('div', 'editor-center'); const toolbar = element('div', 'canvas-bar'); toolbar.append(element('span', '', '◉ Сценарий'), element('span', 'muted', draft.nodes.length + ' блоков · ' + draft.edges.length + ' связей')); center.append(toolbar);
   if (aiAppliedSummary?.projectId === draft.id) { const note = element('aside','ai-build-note'); note.setAttribute('role','status'); note.append(element('strong','','✦ ИИ подготовил сценарий'),element('p','',aiAppliedSummary.text),element('p','tour-success',aiAppliedSummary.status || ''),button('Понятно',()=>{aiAppliedSummary=null;render();},'text-button')); center.append(note); }
   const dock = element('div', 'board-dock'); dock.setAttribute('role', 'toolbar'); dock.setAttribute('aria-label', 'Инструменты доски');
-  dock.append(button('↖ Выбрать', () => { selectedNode = null; editorTab = 'canvas'; render(); }), button('＋ Текст', () => addNode('text')), button('⤢ Расставить', arrangeScenario), button('✦ ИИ', openAssistant, 'ai-trigger'), button('▷ Чат', () => { editorTab = 'test'; render(); })); center.append(dock);
+  dock.append(button('↖ Выбрать', () => { selectedNode = null; openWorkspace('builder'); }), button('＋ Текст', () => addNode('text')), button('⤢ Расставить', arrangeScenario), button('✦ ИИ', openAssistant, 'ai-trigger'), button('▷ Чат', () => { openWorkspace('testing', 'test'); })); center.append(dock);
   const canvas = element('div', 'flow-canvas'); canvas.setAttribute('aria-label', 'Схема сценария'); center.append(canvas);
   if (!draft.nodes.length) { const empty = element('div', 'canvas-welcome'); empty.append(element('div', 'welcome-icon', '⌘'), element('h2', '', 'Соберите свой первый сценарий'), element('p', '', 'Начните со старта — это вход в диалог по команде /start.'), button('+ Добавить старт', () => addNode('start'), 'primary'), button('Посмотреть обучение', openGuide, 'text-button')); center.append(empty); }
   const footer = element('div', 'canvas-footer'); footer.append(element('span', '', 'Перетаскивайте блоки · Прокрутка — перемещение · ⌘ / Ctrl + прокрутка — масштаб')); center.append(footer);
   builder.append(library, center);
-  const inspector = element('aside', 'inspector'); const tabs = element('div', 'inspector-tabs'); for (const [id, label] of [['properties','Свойства'],['test','Проверить чат']]) { const b = button(label, () => { editorTab = id; render(); }, (editorTab === 'test' ? id === 'test' : id === 'properties') ? 'active' : ''); if (id === 'test') b.dataset.tour = 'preview'; tabs.append(b); } inspector.append(tabs);
+  const inspector = element('aside', 'inspector'); inspector.setAttribute('aria-label', 'Панель ' + titles[page]); const panelMode = !['builder','testing'].includes(page); const testing = page === 'testing'; const tabs = element('div', 'inspector-tabs'); for (const [id, label] of [['properties','Свойства'],['test','Проверить чат']]) { const b = button(label, () => { openWorkspace(id === 'test' ? 'testing' : 'builder', id); }, (testing ? id === 'test' : id === 'properties') ? 'active' : ''); if (id === 'test') b.dataset.tour = 'preview'; tabs.append(b); } if (!panelMode) inspector.append(tabs);
+  if (panelMode) renderWorkspacePanel(page, inspector); else {
   const picker = element('label', 'field block-picker'); picker.append(element('span', '', 'Выберите блок')); const select = element('select'); const placeholder = element('option', '', 'Выберите блок на схеме или в списке'); placeholder.value = ''; select.append(placeholder);
   for (const n of draft.nodes) { const option = element('option', '', blockNames[n.type] + ' · ' + (n.data.text || n.data.command || n.id.slice(0, 6)).slice(0, 40)); option.value = n.id; select.append(option); }
-  select.value = selectedNode || ''; select.onchange = () => { selectedNode = select.value || null; render(); }; picker.append(select); if (editorTab !== 'test') inspector.append(picker);
-  if (editorTab === 'test') renderChat(inspector);
+  select.value = selectedNode || ''; select.onchange = () => { selectedNode = select.value || null; render(); }; picker.append(select); if (!testing) inspector.append(picker);
+  if (testing) renderChat(inspector);
   const node = draft.nodes.find(n => n.id === selectedNode);
-  if (editorTab === 'test') {}
+  if (testing) {}
   else if (node) renderProperties(node, inspector);
   else { inspector.append(element('h2', '', 'Свойства блока'), element('div', 'inspector-empty', '↖'), element('h3', '', 'Выберите блок на схеме'), element('p', 'muted', 'Здесь появятся текст сообщения, кнопки и настройки переходов.'), element('div', 'inspector-tip', 'Совет: линии можно выделить и удалить кнопкой ниже.')); }
   const connections = element('details', 'connections-list'); connections.append(element('summary', '', 'Связи · ' + draft.edges.length));
   for (const edge of draft.edges) { const source = draft.nodes.find(n => n.id === edge.source), target = draft.nodes.find(n => n.id === edge.target); if (!source || !target) continue; const row = element('div', 'connection-row'); row.append(element('span', '', blockNames[source.type] + ' → ' + blockNames[target.type]), button('×', () => { draft.edges = draft.edges.filter(e => e.id !== edge.id); changed(); render(); }, 'remove-edge')); row.lastChild.setAttribute('aria-label', 'Удалить связь ' + blockNames[source.type] + ' → ' + blockNames[target.type]); connections.append(row); }
-  if (editorTab !== 'test') inspector.append(connections); builder.append(inspector); main.append(builder); if (editorTab === 'test') paintChat();
+  if (!testing) inspector.append(connections);
+  }
+  builder.append(inspector); main.append(builder); if (testing) paintChat();
   const progress = element('section', 'quick-start'); progress.id = 'quick-start'; main.append(progress); refreshChecklist();
-  if (window.matchMedia('(max-width: 650px)').matches && editorTab !== 'canvas') return;
+  if (window.matchMedia('(max-width: 650px)').matches && (page !== 'builder' || editorTab !== 'canvas')) return;
   disposeCanvas = window.BotForgeCanvas.mount(canvas, draft, blockNames, outputs, {
     drop: (type, position) => addNode(type, position),
     selected: selectedNode,
@@ -201,7 +217,7 @@ function renderBuilder() {
       changed(); render();
     },
     current: () => previewState?.engine.project.id === draft.id && !previewStale() ? previewState.engine.current : null,
-    select: id => { if (selectedNode !== id) { selectedNode = id; if (id) editorTab = 'properties'; render(); } },
+    select: id => { if (selectedNode !== id) { selectedNode = id; if (id) openWorkspace('builder', 'properties'); else render(); } },
     connect: c => connectBlocks(c.source, c.sourceHandle, c.target),
     move: changes => { for (const c of changes) if (c.type === 'position' && c.position) { const n = draft.nodes.find(n => n.id === c.id); if (n && (n.x !== c.position.x || n.y !== c.position.y)) { n.x = c.position.x; n.y = c.position.y; changed(); } } },
     edges: changes => { const removed = new Set(changes.filter(c => c.type === 'remove').map(c => c.id)); if (removed.size) { draft.edges = draft.edges.filter(e => !removed.has(e.id)); changed(); } },
@@ -239,16 +255,16 @@ function renderProperties(n, target = main) {
   const actions = element('div', 'dialog-actions'); actions.append(button('Обновить схему', render), button('Дублировать', () => { const copy = structuredClone(n); copy.id = crypto.randomUUID(); copy.x += 30; copy.y += 30; if (copy.type === 'start') return notify('В проекте разрешён один старт'); if (copy.data.buttons) copy.data.buttons.forEach(b => { b.id = crypto.randomUUID(); }); draft.nodes.push(copy); selectedNode = copy.id; changed(); render(); }), button('Удалить блок', () => { if (!confirm('Удалить блок и его связи?')) return; draft.nodes = draft.nodes.filter(t => t.id !== n.id); draft.edges = draft.edges.filter(e => e.source !== n.id && e.target !== n.id); selectedNode = null; changed(); render(); })); panel.append(actions); target.append(panel);
 }
 async function validateProject() { const result = await api('/' + draft.id + '/validate', 'POST', draft); document.querySelector('#validation')?.remove(); const panel = element('section', 'properties'); panel.id = 'validation'; panel.setAttribute('role', 'status'); panel.append(element('h2', '', result.valid ? 'Проверка пройдена' : 'Исправьте ошибки: ' + result.errors.length)); for (const issue of [...result.errors, ...result.warnings]) panel.append(button(issue.message, () => { if (issue.nodeId) { selectedNode = issue.nodeId; location.hash = 'builder'; render(); } })); main.append(panel); panel.scrollIntoView({ block: 'nearest' }); }
-function renderVariables() {
-  heading('Переменные', 'Начальные значения и данные, которые собирает бот.');
+function renderVariables(target = main) {
+  heading('Переменные', 'Начальные значения и данные, которые собирает бот.', target);
   for (const v of draft.variables) {
     const row = element('section', 'properties variable-row'); field(row, 'Имя', v.name, value => { v.name = value; }); field(row, 'Тип', v.type, value => { v.type = value; v.initial = value === 'number' ? 0 : ''; render(); }, [['text', 'Текст'], ['number', 'Число']]); field(row, 'Начальное значение', v.initial, value => { v.initial = v.type === 'number' ? (value.trim() ? Number(value) : null) : value; });
-    row.append(button('Удалить', () => { const used = draft.nodes.filter(n => n.data.variable === v.name || JSON.stringify(n.data).includes('{' + v.name + '}')); if (confirm('Удалить переменную?' + (used.length ? ' Используется: ' + used.map(n => blockNames[n.type] + ' ' + n.id.slice(0, 6)).join(', ') : ''))) { draft.variables = draft.variables.filter(x => x !== v); changed(); render(); } })); main.append(row);
+    row.append(button('Удалить', () => { const used = draft.nodes.filter(n => n.data.variable === v.name || JSON.stringify(n.data).includes('{' + v.name + '}')); if (confirm('Удалить переменную?' + (used.length ? ' Используется: ' + used.map(n => blockNames[n.type] + ' ' + n.id.slice(0, 6)).join(', ') : ''))) { draft.variables = draft.variables.filter(x => x !== v); changed(); render(); } })); target.append(row);
   }
-  main.append(button('+ Переменная', () => { draft.variables.push({ name: 'переменная_' + (draft.variables.length + 1), type: 'text', initial: '' }); changed(); render(); }));
+  target.append(button('+ Переменная', () => { draft.variables.push({ name: 'переменная_' + (draft.variables.length + 1), type: 'text', initial: '' }); changed(); render(); }));
 }
-function renderBehavior() {
-  heading('Поведение бота', 'Эти настройки действуют в предпросмотре и скачанном боте.');
+function renderBehavior(target = main) {
+  heading('Поведение бота', 'Эти настройки действуют в предпросмотре и скачанном боте.', target);
   const panel = element('section', 'properties');
   for (const [key, label] of Object.entries({ unknownCommand: 'Автоответ на неизвестную команду', unknownText: 'Автоответ на непонятный текст', help: 'Автоматический /help', cancel: '/cancel возвращает к стартовому сценарию', disableOldButtons: 'Отключать старые кнопки', repeatQuestion: 'Повторять вопрос при неверном вводе', preventDoubleClick: 'Защита от повторных нажатий', ignoreCase: 'Игнорировать регистр команд', deleteUser: 'Удалять сообщение пользователя после обработки (зависит от прав Telegram)', typing: 'Показывать «Печатает…»', inputTimeout: 'Ограничить время ожидания ввода', rateLimit: 'Ограничить частоту сообщений' })) {
     const wrap = element('label', 'check-row'); const input = element('input'); input.type = 'checkbox'; input.checked = draft.behavior[key] === true; input.onchange = () => { draft.behavior[key] = input.checked; if (key === 'inputTimeout') { draft.behavior.timeoutSeconds ??= 60; draft.behavior.timeoutText ??= 'Время ожидания истекло.'; } if (key === 'rateLimit') { draft.behavior.rateCount ??= 5; draft.behavior.rateSeconds ??= 10; } changed(); render(); }; wrap.append(input, document.createTextNode(label)); panel.append(wrap);
@@ -256,25 +272,18 @@ function renderBehavior() {
   field(panel, 'История сообщений', draft.behavior.history || 'keep', v => { draft.behavior.history = v; }, [['keep', 'Оставлять сообщения'], ['delete', 'Удалять предыдущее сообщение бота'], ['update', 'Обновлять предыдущее сообщение бота']]);
   if (draft.behavior.inputTimeout) { field(panel, 'Время ожидания, секунд', draft.behavior.timeoutSeconds ?? 60, v => { draft.behavior.timeoutSeconds = Number(v); }); field(panel, 'Сообщение по истечении времени', draft.behavior.timeoutText || 'Время ожидания истекло.', v => { draft.behavior.timeoutText = v; }); }
   if (draft.behavior.rateLimit) { field(panel, 'Количество сообщений', draft.behavior.rateCount ?? 5, v => { draft.behavior.rateCount = Number(v); }); field(panel, 'Интервал, секунд', draft.behavior.rateSeconds ?? 10, v => { draft.behavior.rateSeconds = Number(v); }); }
-  field(panel, 'Ответ на неизвестную команду', draft.behavior.unknownCommandText, v => { draft.behavior.unknownCommandText = v; }); field(panel, 'Ответ на непонятный текст', draft.behavior.unknownTextMessage, v => { draft.behavior.unknownTextMessage = v; }); main.append(panel);
+  field(panel, 'Ответ на неизвестную команду', draft.behavior.unknownCommandText, v => { draft.behavior.unknownCommandText = v; }); field(panel, 'Ответ на непонятный текст', draft.behavior.unknownTextMessage, v => { draft.behavior.unknownTextMessage = v; }); target.append(panel);
 }
 function render() {
-  const page = Object.hasOwn(titles, location.hash.slice(1)) ? location.hash.slice(1) : 'projects'; if (disposeCanvas) { disposeCanvas(); disposeCanvas = null; } document.body.classList.toggle('is-editor', page === 'builder' && !!draft); if (page !== 'builder' && aiDialog.open) closeAssistant(); main.classList.toggle('editor-page', page === 'builder' && !!draft); main.replaceChildren(); document.title = 'BotForge · ' + titles[page]; document.querySelector('#breadcrumb').textContent = draft && page !== 'projects' ? draft.name : 'Рабочее пространство';
+  const page = Object.hasOwn(titles, location.hash.slice(1)) ? location.hash.slice(1) : 'projects'; if (disposeCanvas) { disposeCanvas(); disposeCanvas = null; } document.body.classList.toggle('is-editor', page !== 'projects' && !!draft); if (page !== 'builder' && aiDialog.open) closeAssistant(); main.classList.toggle('editor-page', page !== 'projects' && !!draft); main.replaceChildren(); document.title = 'BotForge · ' + titles[page]; document.querySelector('#breadcrumb').textContent = draft && page !== 'projects' ? draft.name : 'Рабочее пространство';
   document.querySelectorAll('[data-page]').forEach(a => { a.classList.toggle('active', a.dataset.page === page); if (a.dataset.page === page) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   status(dirty ? 'Есть изменения' : 'Серверное хранение');
   if (accountError) { heading('Не удалось проверить доступ', accountError); main.append(button('Повторить', () => location.reload(), 'primary')); return; }
   if (account?.enabled && !account.user) { heading('Добро пожаловать в BotForge', 'Создавайте Telegram-ботов из блоков или с помощью ИИ.'); const panel = element('section', 'login-card'); const link = element('a', 'button', 'Продолжить с Google'); link.href = '/auth/google'; panel.append(element('div','welcome-icon','✦'),element('h2','','От идеи до бота'),element('p','','Войдите, чтобы хранить свои проекты отдельно от других пользователей.'),link,element('p','muted','Нужны только имя и email. Пароль Google сайт не получает.')); const privacy = element('a', 'text-button', 'Данные и конфиденциальность'); privacy.href = '/privacy'; panel.append(privacy); main.append(panel); return; }
   if (page === 'projects') return renderProjects();
-  if (page === 'guide') return renderGuide();
+  if (page === 'guide' && !draft) return renderGuide();
   if (!draft) { heading(titles[page], 'Откройте проект, чтобы продолжить.'); main.append(button('К проектам', () => { location.hash = 'projects'; })); return; }
-  if (page === 'builder') return renderBuilder();
-  if (page === 'testing') return renderTesting();
-  if (page === 'export') return renderExport();
-  if (page === 'variables') renderVariables();
-  else if (page === 'behavior') renderBehavior();
-  else if (page === 'settings') { heading('Настройки проекта', 'Название и описание'); const panel = element('section', 'properties'); field(panel, 'Название', draft.name, v => { draft.name = v; }); field(panel, 'Описание', draft.description, v => { draft.description = v; }); main.append(panel); }
-
-  main.append(button('Сохранить', saveProject, 'primary'));
+  return renderBuilder(page);
 }
 document.querySelector('#open-guide').onclick = openGuide;
 document.querySelector('#close-dialog').onclick = document.querySelector('#cancel-dialog').onclick = () => dialog.close();
