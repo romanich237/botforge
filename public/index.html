@@ -36,12 +36,14 @@
       <a href="#settings" title="Настройки" aria-label="Настройки" data-page="settings"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/icons.svg#settings"></use></svg></span> Настройки</a>
       <a href="#guide" title="Как пользоваться" aria-label="Как пользоваться" data-page="guide"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/icons.svg#circle-help"></use></svg></span> Как пользоваться</a>
     </nav>
+    <button type="button" class="mobile-menu-button" id="open-mobile-menu" aria-haspopup="dialog">Меню</button>
     <div class="sidebar-note"><span class="dot"></span> Рабочее пространство <small>Telegram · первая версия</small></div>
   </aside>
   <div class="workspace">
     <header class="topbar"><span id="breadcrumb">Рабочее пространство</span><span class="local-badge">Серверное хранение</span><button type="button" class="help-button" id="open-guide"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/icons.svg#circle-help"></use></svg> Помощь</button></header>
     <main id="main"></main>
   </div>
+  <dialog id="mobile-menu" aria-labelledby="mobile-menu-title"><div class="dialog-heading"><h2 id="mobile-menu-title">Меню BotForge</h2><button type="button" id="close-mobile-menu" aria-label="Закрыть меню">×</button></div></dialog>
   <dialog id="create-dialog" aria-labelledby="create-title">
     <form id="create-form">
       <div class="dialog-heading"><h2 id="create-title">Новый бот</h2><button type="button" class="icon-button" id="close-dialog" aria-label="Закрыть">×</button></div>
