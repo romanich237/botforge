@@ -610,3 +610,43 @@ button.primary:hover { background:#0873cc; }
   .inspector .chat-choice { background:#e9f3ff; color:#1763a1; border-color:#c7ddf0; }
   .inspector .chat-heading button { background:#f5f7fb; color:#52627b; border-color:#dce3ed; }
 }
+/* Navigation changes panels without replacing the board. */
+.panel-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; }
+.inspector > .page-heading { display:block; margin-bottom:20px; padding:0; }
+.inspector > .page-heading h1 { font-size:17px; margin-bottom:8px; }
+.inspector > .page-heading p { display:block; font-size:12px; line-height:1.6; }
+.inspector > .properties { padding:0; border:0; background:transparent; margin:18px 0; }
+.inspector .variable-row,.inspector .export-layout,.inspector .guide-grid { display:block; }
+.inspector .export-layout { margin:16px 0; }
+.inspector .export-settings,.inspector .export-code { padding:12px; min-width:0; }
+.inspector .export-settings button { display:block; width:100%; margin:8px 0; white-space:normal; }
+.inspector .source-view { max-height:260px; font-size:11px; overflow:auto; }
+.inspector .guide-intro,.inspector .guide-card,.inspector .faq { padding:14px; margin:12px 0; }
+.inspector .guide-intro .welcome-icon { display:none; }
+.inspector .check-row { align-items:flex-start; line-height:1.5; font-size:12px; }
+@media(min-width:651px) {
+  .is-editor .sidebar { width:80px; padding:16px 5px; overflow-y:auto; overflow-x:hidden; }
+  .is-editor .brand { padding:0 18px 20px; }
+  .is-editor nav { gap:5px; }
+  .is-editor nav a { font-size:10px; padding:10px 2px; min-height:58px; line-height:1.2; overflow-wrap:anywhere; }
+  .is-editor .workspace { margin-left:80px; }
+  .builder.editor-shell { grid-template-columns:240px minmax(180px,1fr) 340px; }
+  .assistant-open .editor-shell { grid-template-columns:320px minmax(180px,1fr) 340px; }
+  #ai-dialog[open] { left:80px; }
+  .inspector .guide-intro,.inspector .guide-card,.inspector .faq,.inspector .export-settings,.inspector .export-code { background:#333; border-color:#4c4c4c; }
+  .inspector .export-instruction p,.inspector .guide-card p,.inspector .faq p,.inspector .guide-intro p { font-size:12px; color:#bbb; }
+  .inspector .check-row input { accent-color:#1688ed; }
+}
+@media(min-width:651px) and (max-width:1050px) {
+  .builder.editor-shell { grid-template-columns:172px minmax(160px,1fr) 280px; }
+  .assistant-open .editor-shell { grid-template-columns:280px minmax(160px,1fr) 280px; }
+  .editor-page > .page-heading { gap:8px; }
+  .editor-page .page-heading h1 { font-size:13px; }
+}
+@media(min-width:651px) {
+  .is-editor .sidebar { width:92px; }
+  .is-editor .workspace { margin-left:92px; }
+  .is-editor .brand { padding-left:24px; }
+  .is-editor nav a { overflow-wrap:normal; font-size:10px; }
+  #ai-dialog[open] { left:92px; }
+}
