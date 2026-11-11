@@ -1,0 +1,125 @@
+/* Shared workspace theme. Public welcome styles stay in style.css. */
+body:not(.is-welcome) { --blue:#25262b; --border:#e1e2e6; --muted:#81828c; background:#fafafa; color:#27282e; }
+body:not(.is-welcome) button,body:not(.is-welcome) .button { border-radius:5px; box-shadow:none; }
+body:not(.is-welcome) button.primary { background:#27282e; border-color:#27282e; color:white; }
+body:not(.is-welcome) button.primary:hover { background:#45464e; }
+body:not(.is-welcome) .sidebar { background:#f5f5f6; border-color:#dedfe3; color:#31323a; }
+body:not(.is-welcome) .brand { color:#292a30; }
+body:not(.is-welcome) nav a { color:#757680; border-radius:5px; font-weight:400; }
+body:not(.is-welcome) nav a:hover { background:#ececef; }
+body:not(.is-welcome) nav a.active { background:#e6e7eb; color:#292a33; font-weight:600; }
+body:not(.is-welcome) .sidebar-note,body:not(.is-welcome) .sidebar-note small { color:#696d78; }
+body:not(.is-welcome) .topbar { background:#fafafa; color:#7c7d87; border-color:#e2e3e7; }
+body:not(.is-welcome) .topbar button { background:white; border-color:#dedfe4; color:#73747e; }
+body:not(.is-welcome) .local-badge { background:transparent; color:#696d78; font-size:10px; }
+body:not(.is-welcome) main:not(.editor-page) { max-width:1260px; padding:38px 32px; }
+body:not(.is-welcome) h1 { font-size:26px; font-weight:600; letter-spacing:-.7px; }
+body:not(.is-welcome) .page-heading p { font-size:12px; color:#696d78; }
+.project-heading-actions { display:flex; align-items:center; gap:8px; }
+.project-heading-actions button { font-size:12px; min-height:38px; }
+body:not(.is-welcome) .ai-trigger { color:#61636f; border-color:#d9dbe2; background:white; }
+body:not(.is-welcome) .toolbar { gap:12px; align-items:center; margin-bottom:24px; }
+body:not(.is-welcome) .toolbar input { background:white; font-size:12px; border-radius:5px; max-width:340px; padding:11px 12px; }
+body:not(.is-welcome) .platform-tag { background:#f1f2f4; color:#696d78; border-radius:4px; font-size:10px; }
+body:not(.is-welcome) .welcome-banner { background:#f4f4f6; border:1px solid #e1e2e6; border-radius:6px; box-shadow:none; padding:22px 24px; margin-bottom:28px; }
+body:not(.is-welcome) .welcome-banner .eyebrow { font-size:9px; color:#696d78; letter-spacing:1px; }
+body:not(.is-welcome) .welcome-banner h2 { font-size:16px; margin-top:9px; font-weight:600; }
+body:not(.is-welcome) .welcome-banner p { font-size:12px; color:#696d78; }
+body:not(.is-welcome) .welcome-actions { flex-direction:row; align-items:center; flex-wrap:wrap; gap:8px; }
+body:not(.is-welcome) .welcome-actions button { font-size:11px; padding:9px 12px; }
+body:not(.is-welcome) .welcome-actions button.primary { background:white; color:#454650; border-color:#d6d7de; }
+body:not(.is-welcome) .project-grid { grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:20px; }
+body:not(.is-welcome) .project-card { border-radius:7px; border-color:#dddfe5; padding:18px; box-shadow:none; background:white; }
+body:not(.is-welcome) .project-card .card-top { padding:0; margin:18px 0 12px; min-height:0; background:none; gap:10px; }
+body:not(.is-welcome) .card-top h2 { font-size:14px; font-weight:600; margin-bottom:7px; }
+body:not(.is-welcome) .project-icon { width:32px; height:32px; border-radius:5px; background:#f0f1f4; color:#696d78; }
+body:not(.is-welcome) .project-card .muted { font-size:10px; color:#696d78; margin-bottom:18px; }
+body:not(.is-welcome) .card-actions button { font-size:11px; padding:9px 10px; min-height:36px; }
+body:not(.is-welcome) .card-actions .open { background:#fafafa; color:#454650; border-color:#dedfe5; }
+.project-thumbnail { display:flex; align-items:center; justify-content:center; gap:18px; height:128px; background:#f1f1f3; background-image:radial-gradient(#d9dae0 .7px,transparent .7px); background-size:12px 12px; margin:-18px -18px 0; padding:20px; border-bottom:1px solid #e0e1e6; overflow:hidden; }
+.project-mini-node { position:relative; min-width:55px; padding:14px 9px; font-size:9px; color:#696d78; background:white; border:1px solid #d5d8e1; border-radius:3px; text-align:center; }
+.project-mini-node:not(:last-child)::after { content:''; position:absolute; width:18px; height:1px; background:#a7b4c8; top:50%; left:100%; }
+.project-thumbnail-empty { font-size:11px; color:#696d78; }
+body:not(.is-welcome) .editor-page > .page-heading { background:#292a2e; color:#eeeeef; border-color:#3d3e43; }
+body:not(.is-welcome) .editor-page > .page-heading h1 { color:#eeeeef; font-size:14px; font-weight:500; letter-spacing:0; }
+body:not(.is-welcome) .editor-actions button { background:#34353a; border-color:#4b4c54; color:#c5c6cd; font-size:11px; border-radius:4px; }
+body:not(.is-welcome) .editor-actions button:hover { background:#46474f; }
+body:not(.is-welcome) .editor-actions button.primary { color:#292a32; background:#f3f3f5; border-color:#f3f3f5; }
+body:not(.is-welcome) .editor-shell .library { background:#fdfdfd; color:#33343c; border-color:#dedfe4; }
+body:not(.is-welcome) .library .panel-eyebrow { color:#696d78; font-size:9px; }
+body:not(.is-welcome) .library h2 { font-size:14px; font-weight:600; }
+body:not(.is-welcome) .library > .muted { color:#696d78; font-size:11px; }
+body:not(.is-welcome) .library > .library-levels { background:#f0f0f3; border:1px solid #e2e3e8; border-radius:5px; }
+body:not(.is-welcome) .library-levels button { color:#696d78; }
+body:not(.is-welcome) .library-levels button.active { background:white; color:#454650; box-shadow:none; }
+body:not(.is-welcome) .library button.library-block { background:white; color:#52545e; border-color:#e0e2e9; border-radius:5px; min-height:56px; box-shadow:none; }
+body:not(.is-welcome) .library button.library-block:hover { background:#f5f6f9; border-color:#bdc3d1; }
+body:not(.is-welcome) .library-copy strong { font-size:12px; font-weight:500; }
+body:not(.is-welcome) .library-copy small { color:#696d78; }
+body:not(.is-welcome) .block-symbol { background:#f0f1f5; color:#696d78; border-radius:4px; }
+body:not(.is-welcome) .board-layers,body:not(.is-welcome) .library .block-search { border-color:#e2e3e7; }
+body:not(.is-welcome) .board-layers button { color:#696d78; background:transparent; font-size:10px; border-radius:4px; }
+body:not(.is-welcome) .board-layers button.active,body:not(.is-welcome) .board-layers button:hover { color:#4e6687; background:#edf1f7; }
+body:not(.is-welcome) .library input { background:white; color:#51535e; border-color:#dedfe7; border-radius:4px; }
+body:not(.is-welcome) .library .block-search-results button { background:white; color:#737582; border-color:#e0e1e8; }
+body:not(.is-welcome) .editor-center,body:not(.is-welcome) .flow-canvas { background:#f0f0f2; }
+body:not(.is-welcome) .canvas-bar,body:not(.is-welcome) .canvas-footer { background:#f0f0f2; color:#696d78; border-color:#e0e1e6; }
+body:not(.is-welcome) .inspector { background:#fdfdfd; color:#555762; border-color:#dedfe5; }
+body:not(.is-welcome) .inspector h2,body:not(.is-welcome) .inspector h3 { color:#4c4e59; font-weight:600; }
+body:not(.is-welcome) .inspector-tabs { background:#f0f0f3; border-color:#e2e3e9; border-radius:5px; }
+body:not(.is-welcome) .inspector-tabs button { color:#696d78; border:0; background:transparent; }
+body:not(.is-welcome) .inspector-tabs button.active { color:#545d74; background:white; box-shadow:none; }
+body:not(.is-welcome) .inspector input,body:not(.is-welcome) .inspector textarea,body:not(.is-welcome) .inspector select { color:#696c7b; background:white; border-color:#dddfe7; border-radius:4px; }
+body:not(.is-welcome) .inspector button { background:#fafafa; color:#787b8c; border-color:#dddfe7; }
+body:not(.is-welcome) .inspector button.primary { background:#292a30; color:white; border-color:#292a30; }
+body:not(.is-welcome) .inspector .property-tip,body:not(.is-welcome) .inspector .muted { color:#696d78; }
+body:not(.is-welcome) .inspector .inspector-tip { background:#f5f5f7; color:#696d78; }
+body:not(.is-welcome) .inspector-empty { color:#696d78; }
+body:not(.is-welcome) .inspector .connections-list { border-color:#e3e4ea; }
+body:not(.is-welcome) .inspector .connection-row { color:#696d78; }
+body:not(.is-welcome) .inspector .guide-intro,body:not(.is-welcome) .inspector .guide-card,body:not(.is-welcome) .inspector .faq,body:not(.is-welcome) .inspector .export-settings,body:not(.is-welcome) .inspector .export-code { background:#fafafa; border-color:#e3e4e9; }
+body:not(.is-welcome) .inspector .export-instruction p,body:not(.is-welcome) .inspector .guide-card p,body:not(.is-welcome) .inspector .faq p,body:not(.is-welcome) .inspector .guide-intro p { color:#696d78; }
+body:not(.is-welcome) .scenario-node { border-radius:5px; border-color:#d0d4df; box-shadow:0 1px 3px #22222205; }
+body:not(.is-welcome) .scenario-node-title strong { font-size:12px; font-weight:500; }
+body:not(.is-welcome) .scenario-node-body { color:#696d78; font-size:11px; }
+body:not(.is-welcome) .scenario-output { background:#f8f8fa; color:#696d78; border-radius:3px; }
+body:not(.is-welcome) .scenario-node.is-selected { border-color:#7596c2; box-shadow:0 0 0 1px #7596c233; }
+body:not(.is-welcome) .react-flow__edge-path { stroke:#92a6c2; }
+body:not(.is-welcome) .scenario-node .react-flow__handle { background:#7b9bc5; }
+body:not(.is-welcome) .board-dock { border-radius:7px; background:#292a30; border-color:#464852; box-shadow:0 3px 12px #0002; }
+body:not(.is-welcome) .board-dock button { background:transparent; color:#696d78; font-size:10px; }
+body:not(.is-welcome) .board-dock button:first-child { background:#484d5b; color:white; }
+body:not(.is-welcome) .quick-start { background:#fafafa; color:#696d78; border-color:#e0e3eb; }
+body:not(.is-welcome) .quick-start button { color:#696d78; }
+body:not(.is-welcome) #ai-dialog[open] { background:#fdfdfd; color:#555a6c; border-color:#dddfe8; }
+body:not(.is-welcome) #ai-dialog button { background:#fafafa; color:#7a8196; border-color:#dfe2eb; }
+body:not(.is-welcome) #ai-dialog button.primary { background:#2d3039; border-color:#2d3039; color:white; }
+body:not(.is-welcome) #ai-dialog textarea { background:white; color:#606a82; border-color:#dce1ec; }
+body:not(.is-welcome) #ai-dialog .muted,body:not(.is-welcome) #ai-dialog .ai-context,body:not(.is-welcome) #ai-dialog .ai-provider,body:not(.is-welcome) #ai-dialog .ai-privacy { color:#696d78; }
+body:not(.is-welcome) #ai-dialog .ai-settings { border-color:#e1e5ed; color:#696d78; }
+body:not(.is-welcome) #ai-dialog .ai-modes { background:#f1f3f7; border-color:#e0e4ed; }
+body:not(.is-welcome) #ai-dialog .ai-modes button.active { background:white; color:#657492; border-color:#dce2ee; }
+body:not(.is-welcome) #ai-dialog .ai-run-options { background:#f7f8fa; border-color:#e3e6ef; }
+body:not(.is-welcome) #ai-dialog .ai-answer,body:not(.is-welcome) #ai-dialog .ai-working,body:not(.is-welcome) #ai-dialog .ai-proposal { background:#f1f4f9; border-color:#dce3ef; }
+body:not(.is-welcome) #ai-dialog .dialog-actions { background:#fdfdfd; }
+body:not(.is-welcome) #ai-dialog .tour-success { color:#5f8f79; }
+@media(max-width:650px) {
+  body:not(.is-welcome) main:not(.editor-page) { padding:24px 16px; }
+  .project-heading-actions { width:100%; }
+  .project-heading-actions button { flex:1; min-height:44px; }
+  body:not(.is-welcome) .welcome-banner { padding:18px; }
+  body:not(.is-welcome) .welcome-actions { margin-top:10px; }
+  body:not(.is-welcome) .project-grid { grid-template-columns:minmax(0,1fr); }
+  body:not(.is-welcome) .toolbar input { max-width:none; }
+  body:not(.is-welcome) .mobile-menu-button { color:#5b6275; background:white; border-color:#dce0e9; }
+  body:not(.is-welcome) .mobile-panel-close { background:#fdfdfd; color:#6a7997; }
+  body:not(.is-welcome) .editor-tabs { background:#fafafa; border-color:#e0e4ed; }
+  body:not(.is-welcome) .editor-tabs button { color:#696d78; }
+  body:not(.is-welcome) .editor-tabs button.active { background:#edf0f6; color:#687b9e; }
+}
+body:not(.is-welcome) .board-dock button { color:#c9ccd5; }
+@media(min-width:651px) { body:not(.is-welcome) .mobile-panel-close { display:none; } }
+body:not(.is-welcome) #mobile-menu { background:#fafafa; color:#33353d; }
+body:not(.is-welcome) #mobile-menu nav a { color:#737784; }
+body:not(.is-welcome) #mobile-menu nav a.active { background:#e9ebef; color:#353b49; }
+body:not(.is-welcome) #mobile-menu #close-mobile-menu { color:#5b6376; background:white; border-color:#dde2ec; }
