@@ -11,7 +11,7 @@ const { createStorage } = require('./storage');
 function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, 'data'), options = {}) {
   const assistant = createAssistant(options.ai);
   const publicOrigin = options.publicOrigin ?? process.env.PUBLIC_ORIGIN;
-  const files = { '/privacy': ['privacy.html', 'text/html; charset=utf-8'], '/tour.js': ['tour.js', 'text/javascript; charset=utf-8'], '/logo.png': ['logo.png', 'image/png'],
+  const files = { '/icons.svg': ['icons.svg', 'image/svg+xml'], '/icons-LICENSE.txt': ['icons-LICENSE.txt', 'text/plain; charset=utf-8'], '/privacy': ['privacy.html', 'text/html; charset=utf-8'], '/tour.js': ['tour.js', 'text/javascript; charset=utf-8'], '/logo.png': ['logo.png', 'image/png'],
     '/favicon.ico': ['favicon.ico', 'image/x-icon'],
     '/favicon-16x16.png': ['favicon-16x16.png', 'image/png'],
     '/favicon-32x32.png': ['favicon-32x32.png', 'image/png'],
