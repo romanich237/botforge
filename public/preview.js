@@ -80,7 +80,7 @@ function renderExport() {
   h.append(element('span', 'platform-tag', '↗ Telegram · 4 языка экспорта'));
   const layout = element('section', 'export-layout'); const settings = element('aside', 'export-settings'); settings.append(element('h2', '', 'Настройки экспорта'));
   const wrap = element('label', 'field'); wrap.append(element('span', '', 'Язык программирования')); const select = element('select'); for (const [v, t] of Object.entries(window.BotForgeLanguages).map(([id, spec]) => [id, spec.name + ' · ' + spec.runtime])) { const o = element('option', '', t); o.value = v; select.append(o); } select.value = exportLanguage; select.disabled = exportBusy; select.onchange = () => { exportLanguage = select.value; exportResult = null; render(); }; wrap.append(select); settings.append(wrap);
-  const generate = button(exportBusy ? 'Проверяем и генерируем…' : 'Проверить и подготовить код', prepareExport, 'primary'); generate.disabled = exportBusy; settings.append(generate, element('p', 'muted', 'Экспортируется текущая схема, включая несохранённые изменения. Токен добавляется только в локальный .env.'));
+  const generate = button(exportBusy ? 'Проверяем и генерируем…' : 'Проверить и подготовить код', prepareExport, 'primary'); generate.disabled = exportBusy; settings.append(button('↓ Скачать полный проект · все языки', downloadProjectBundle), generate, element('p', 'muted', 'Экспортируется текущая схема, включая несохранённые изменения. Токен добавляется только в локальный .env.'));
   const code = element('div', 'export-code');
   if (exportResult && exportResult.signature !== scenarioSignature()) exportResult = null;
   if (exportResult?.errors?.length) {
@@ -121,3 +121,18 @@ setInterval(() => {
   if (!draft || !previewState || previewBusy || previewStale()) return;
   const events = previewState.engine.tick(); if (events.length) { applyPreviewEvents(events); paintChat(); }
 }, 500);
+
+async function downloadProjectBundle() {
+  if (exportBusy || !draft) return false;
+  exportBusy = true;
+  const snapshot = structuredClone(draft), signature = scenarioSignature();
+  try {
+    const response = await fetch('/api/projects/' + snapshot.id + '/export/zip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project: snapshot, language: 'all' }) });
+    if (!response.ok) { const data = await response.json(); throw Error(data.message || data.errors?.map(e => e.message).slice(0, 3).join('; ') || 'Не удалось собрать проект'); }
+    const blob = await response.blob();
+    if (signature !== scenarioSignature()) throw Error('Схема изменилась во время подготовки ZIP. Нажмите «Полный ZIP» ещё раз.');
+    const url = URL.createObjectURL(blob), link = element('a'); link.href = url; link.download = 'botforge-full-project.zip'; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    notify('Полный проект готов: схема и исходники на четырёх языках. Если загрузка не началась, нажмите «Полный ZIP».'); return true;
+  } catch (error) { notify(error.message); return false; }
+  finally { exportBusy = false; }
+}

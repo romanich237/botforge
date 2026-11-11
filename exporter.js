@@ -4,11 +4,17 @@ const { zipSync, strToU8 } = require('fflate');
 const { checkShape, validate } = require('./project');
 const languages = require('./public/languages');
 async function generate(project, language) {
-  if (!Object.hasOwn(languages, language)) throw Object.assign(Error('Выберите Python, JavaScript, TypeScript или Go'), { status: 400 });
+  if (language !== 'all' && !Object.hasOwn(languages, language)) throw Object.assign(Error('Выберите Python, JavaScript, TypeScript или Go'), { status: 400 });
   const shape = checkShape(project);
   if (shape) throw Object.assign(Error(shape), { status: 400 });
   const validation = validate(project);
   if (!validation.valid) return { ...validation, files: [] };
+  if (language === 'all') {
+    const variants = await Promise.all(Object.keys(languages).map(async name => ({ name, result: await generate(project, name) })));
+    const files = [{ name: 'botforge-project/project.json', content: JSON.stringify(project, null, 2) + '\n' }, { name: 'botforge-project/README.md', content: '# Полный проект BotForge\n\nproject.json содержит сценарий, координаты блоков, связи, переменные и настройки.\n\nВ папках python, javascript, typescript и go — самостоятельные варианты бота с исходным кодом, настройками и инструкцией запуска. Выберите один язык и следуйте README.md в его папке. Токен Telegram получите у @BotFather и заполните локальный .env.\n\nВнутри ZIP нет ключа ИИ и данных Google-входа. Начальные значения переменных и тексты сценария входят в project.json: перед публикацией проверьте их.\n' }];
+    for (const variant of variants) for (const file of variant.result.files) files.push({ ...file, name: 'botforge-project/' + variant.name + '/' + file.name });
+    return { ...validation, files };
+  }
   const spec = languages[language];
   const read = async (name, source) => ({ name, content: await fs.readFile(path.join(__dirname, source), 'utf8') });
   let files;

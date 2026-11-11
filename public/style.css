@@ -480,3 +480,7 @@ button.primary { background:#6554d9; border-color:#6554d9; } button.primary:hove
 .brand { display: flex; align-items: center; gap: 9px; }
 .brand-logo { width: 36px; height: 36px; flex: 0 0 36px; object-fit: contain; }
 @media (max-width: 650px) { .brand-logo { width: 30px; height: 30px; flex-basis: 30px; } }
+.ai-run-options { display:grid; gap:12px; padding:14px; margin:16px 0; background:#f6f4fa; border-radius:10px; }
+.ai-run-options label { display:flex; align-items:center; gap:10px; font-size:13px; cursor:pointer; }
+.ai-run-options input { width:18px; height:18px; flex:0 0 18px; accent-color:var(--blue); }
+.editor-actions { flex-wrap:wrap; justify-content:flex-end; }

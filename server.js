@@ -21,7 +21,7 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, 'da
     '/site.webmanifest': ['site.webmanifest', 'application/manifest+json'],
     '/editor.js': ['editor.js', 'text/javascript; charset=utf-8'], '/': ['index.html', 'text/html; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/canvas.js': ['canvas.js', 'text/javascript; charset=utf-8'], '/canvas.css': ['canvas.css', 'text/css; charset=utf-8'], '/guide.js': ['guide.js', 'text/javascript; charset=utf-8'], '/runtime.js': ['runtime.js', 'text/javascript; charset=utf-8'], '/preview.js': ['preview.js', 'text/javascript; charset=utf-8'], '/languages.js': ['languages.js', 'text/javascript; charset=utf-8'], '/layout.js': ['layout.js', 'text/javascript; charset=utf-8'], '/ai.js': ['ai.js', 'text/javascript; charset=utf-8'] };
   const storage = createStorage(dataDir);
-  const auth = createAuth(dataDir, options.auth);
+  const auth = createAuth(dataDir, { origin: publicOrigin, ...options.auth });
   const server = http.createServer(async (req, res) => {
     const send = (status, body) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(body)); };
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -36,7 +36,7 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, 'da
         return res.end(await fs.readFile(path.join(__dirname, 'public', entry[0])));
       }
       if (!['GET', 'POST', 'PUT', 'DELETE'].includes(req.method)) return send(405, { message: 'Метод не поддерживается' });
-      if (req.headers.origin && req.headers.origin !== (publicOrigin || 'http://' + req.headers.host)) return send(403, { message: 'Недопустимый источник запроса' });
+      if (req.headers.origin && !auth.acceptsOrigin(req.headers.origin) && (publicOrigin || auth.enabled || req.headers.origin !== 'http://' + req.headers.host)) return send(403, { message: 'Недопустимый источник запроса' });
       const user = auth.user(req);
       if (!user) return send(401, { message: 'Войдите через Google, чтобы открыть проекты' });
       const owner = user.id;

@@ -19,11 +19,11 @@ function leave() { if (busy) { notify('Дождитесь завершения �
 async function reload() { loading = true; loadError = ''; render(); try { projects = await api(''); } catch (e) { loadError = e.message; } loading = false; render(); }
 async function openProject(id) { if (!leave()) return; const project = await api('/' + id); draft = project; blockSearch = ''; focusNode = null; editorTab = 'canvas'; canvasViewport = null; selectedId = id; selectedNode = null; dirty = false; sessionStorage.setItem('botforge.selected', id); location.hash = 'builder'; render(); }
 async function saveProject() {
-  if (busy || !draft) return;
+  if (busy || !draft) return false;
   busy = true; status('Сохраняется…');
   const snapshot = JSON.stringify(draft);
-  try { const saved = await api('/' + draft.id, 'PUT', draft); projects = projects.map(p => p.id === saved.id ? saved : p); if (JSON.stringify(draft) === snapshot) { draft = saved; dirty = false; render(); } else { draft.revision = saved.revision; } status(dirty ? 'Есть изменения' : 'Сохранено'); }
-  catch (e) { status('Ошибка сохранения'); notify(e.message + ' Изменения остаются на экране. Нажмите «Сохранить» для повтора.'); }
+  try { const saved = await api('/' + draft.id, 'PUT', draft); projects = projects.map(p => p.id === saved.id ? saved : p); if (JSON.stringify(draft) === snapshot) { draft = saved; dirty = false; render(); } else { draft.revision = saved.revision; } status(dirty ? 'Есть изменения' : 'Сохранено'); return !dirty; }
+  catch (e) { status('Ошибка сохранения'); notify(e.message + ' Изменения остаются на экране. Нажмите «Сохранить» для повтора.'); return false; }
   finally { busy = false; refreshChecklist(); }
 }
 function field(parent, label, value, onChange, options) {
@@ -149,7 +149,7 @@ function renderBlockSearch() {
 }
 function renderBuilder() {
   const h = heading('Сценарий бота', 'Telegram · Добавьте блоки, соедините и сохраните');
-  const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { editorTab = 'test'; render(); }), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions); for (const b of actions.children) { if (b.textContent === 'Сохранить') b.dataset.tour = 'save'; if (b.textContent.includes('Предпросмотр')) b.dataset.tour = 'preview'; }
+  const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { editorTab = 'test'; render(); }), button('↓ Полный ZIP', downloadProjectBundle), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions); for (const b of actions.children) { if (b.textContent === 'Сохранить') b.dataset.tour = 'save'; if (b.textContent.includes('Предпросмотр')) b.dataset.tour = 'preview'; }
   renderBlockSearch();
   const mobileTabs = element('div', 'editor-tabs'); mobileTabs.setAttribute('role', 'group'); mobileTabs.setAttribute('aria-label', 'Панели конструктора');
   for (const [id, text] of [['blocks', '+ Блоки'], ['canvas', '⌘ Схема'], ['properties', '⚙ Свойства'], ['test', '▷ Тест']]) { const b = button(text, () => { editorTab = id; render(); }, editorTab === id ? 'active' : ''); b.setAttribute('aria-pressed', String(editorTab === id)); mobileTabs.append(b); }
@@ -168,7 +168,7 @@ function renderBuilder() {
   const search = document.querySelector('.block-search'); if (search) library.append(search);
   const hint = element('div', 'library-hint'); hint.append(element('strong', '', 'Соединяйте идеи'), element('p', '', 'Потяните от точки справа к входу другого блока. Каждая кнопка — отдельная ветка.')); library.append(hint);
   const center = element('div', 'editor-center'); const toolbar = element('div', 'canvas-bar'); toolbar.append(element('span', '', '◉ Сценарий'), element('span', 'muted', draft.nodes.length + ' блоков · ' + draft.edges.length + ' связей')); center.append(toolbar);
-  if (aiAppliedSummary?.projectId === draft.id) { const note = element('aside','ai-build-note'); note.setAttribute('role','status'); note.append(element('strong','','✦ ИИ подготовил сценарий'),element('p','',aiAppliedSummary.text),button('Понятно',()=>{aiAppliedSummary=null;render();},'text-button')); center.append(note); }
+  if (aiAppliedSummary?.projectId === draft.id) { const note = element('aside','ai-build-note'); note.setAttribute('role','status'); note.append(element('strong','','✦ ИИ подготовил сценарий'),element('p','',aiAppliedSummary.text),element('p','tour-success',aiAppliedSummary.status || ''),button('Понятно',()=>{aiAppliedSummary=null;render();},'text-button')); center.append(note); }
   const canvas = element('div', 'flow-canvas'); canvas.setAttribute('aria-label', 'Схема сценария'); center.append(canvas);
   if (!draft.nodes.length) { const empty = element('div', 'canvas-welcome'); empty.append(element('div', 'welcome-icon', '⌘'), element('h2', '', 'Соберите свой первый сценарий'), element('p', '', 'Начните со старта — это вход в диалог по команде /start.'), button('+ Добавить старт', () => addNode('start'), 'primary'), button('Посмотреть обучение', openGuide, 'text-button')); center.append(empty); }
   const footer = element('div', 'canvas-footer'); footer.append(element('span', '', 'Перетаскивайте блоки · Прокрутка — перемещение · ⌘ / Ctrl + прокрутка — масштаб')); center.append(footer);
