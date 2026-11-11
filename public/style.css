@@ -810,3 +810,8 @@ nav a .ui-icon { width:22px; height:22px; }
   .welcome-bottom { font-size:10px; line-height:1.7; }
   .welcome-bottom span:last-child { width:100%; margin:0; }
 }
+.chat-message-text { white-space:pre-wrap; overflow-wrap:anywhere; }
+.chat-message .chat-command,.chat-empty .chat-command,body:not(.is-welcome) .inspector .chat-command { display:inline; border:0; border-radius:2px; padding:0; min-height:0; background:transparent; color:#1766a6; font:inherit; font-weight:500; line-height:inherit; text-align:inherit; box-shadow:none; vertical-align:baseline; }
+.chat-command:hover { text-decoration:underline; }
+.chat-command:disabled { color:inherit; opacity:.55; cursor:default; text-decoration:none; }
+.chat-empty > .chat-message-text { display:block; margin:12px 0; }
