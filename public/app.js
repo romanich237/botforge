@@ -156,12 +156,13 @@ function openWorkspace(page, tab = 'canvas') {
   if (location.hash.slice(1) === page) render(); else location.hash = page;
 }
 function renderWorkspacePanel(page, target) {
-  const top = element('div', 'panel-heading'); top.append(element('strong', '', titles[page]), button('×', () => openWorkspace('builder'), 'icon-button')); top.lastChild.setAttribute('aria-label', 'Закрыть панель'); target.append(top);
+  const top = element('div', 'panel-heading'); top.append(element('h2', '', titles[page]), button('×', () => openWorkspace('builder'), 'icon-button')); top.lastChild.setAttribute('aria-label', 'Закрыть панель'); target.append(top);
   if (page === 'behavior') renderBehavior(target);
   else if (page === 'variables') renderVariables(target);
   else if (page === 'export') renderExport(target);
   else if (page === 'guide') renderGuide(target);
   else if (page === 'settings') { heading('Настройки проекта', 'Название и описание', target); const panel = element('section', 'properties'); field(panel, 'Название', draft.name, v => { draft.name = v; }); field(panel, 'Описание', draft.description, v => { draft.description = v; }); target.append(panel); }
+  target.querySelector('.page-heading h1')?.remove();
   if (['behavior','variables','settings'].includes(page)) target.append(button('Сохранить изменения', saveProject, 'primary'));
 }
 function renderBuilder(page = 'builder') {
@@ -185,6 +186,7 @@ function renderBuilder(page = 'builder') {
   const layers = element('details', 'board-layers'); layers.open = true; layers.append(element('summary', '', 'Блоки на доске · ' + draft.nodes.length));
   for (const node of draft.nodes) { const row = button((node.data.text || node.data.command || blockNames[node.type]).slice(0, 34), () => { selectedNode = node.id; focusNode = node.id; openWorkspace('builder', 'properties'); }, node.id === selectedNode ? 'active' : ''); row.prepend(icon(icons[node.type])); row.classList.add('with-icon'); row.title = blockNames[node.type]; layers.append(row); }
   library.append(layers);
+  const closeLibrary = button('× К схеме', () => openWorkspace('builder'), 'mobile-panel-close'); closeLibrary.setAttribute('aria-label', 'Закрыть библиотеку блоков'); library.prepend(closeLibrary);
   const search = document.querySelector('.block-search'); if (search) library.append(search);
   const hint = element('div', 'library-hint'); hint.append(element('strong', '', 'Соединяйте идеи'), element('p', '', 'Потяните от точки справа к входу другого блока. Каждая кнопка — отдельная ветка.')); library.append(hint);
   const center = element('div', 'editor-center'); const toolbar = element('div', 'canvas-bar'); toolbar.append(element('span', '', '◉ Сценарий'), element('span', 'muted', draft.nodes.length + ' блоков · ' + draft.edges.length + ' связей')); center.append(toolbar);
@@ -209,6 +211,7 @@ function renderBuilder(page = 'builder') {
   for (const edge of draft.edges) { const source = draft.nodes.find(n => n.id === edge.source), target = draft.nodes.find(n => n.id === edge.target); if (!source || !target) continue; const row = element('div', 'connection-row'); row.append(element('span', '', blockNames[source.type] + ' → ' + blockNames[target.type]), button('×', () => { draft.edges = draft.edges.filter(e => e.id !== edge.id); changed(); render(); }, 'remove-edge')); row.lastChild.setAttribute('aria-label', 'Удалить связь ' + blockNames[source.type] + ' → ' + blockNames[target.type]); connections.append(row); }
   if (!testing) inspector.append(connections);
   }
+  const closeInspector = button('× К схеме', () => openWorkspace('builder'), 'mobile-panel-close'); closeInspector.setAttribute('aria-label', 'Закрыть боковую панель'); inspector.prepend(closeInspector);
   builder.append(inspector); main.append(builder); if (testing) paintChat();
   const progress = element('section', 'quick-start'); progress.id = 'quick-start'; main.append(progress); refreshChecklist();
   if (window.matchMedia('(max-width: 650px)').matches && (page !== 'builder' || editorTab !== 'canvas')) return;
@@ -289,6 +292,12 @@ function render() {
   if (!draft) { heading(titles[page], 'Откройте проект, чтобы продолжить.'); main.append(button('К проектам', () => { location.hash = 'projects'; })); return; }
   return renderBuilder(page);
 }
+const mobileMenu = document.querySelector('#mobile-menu');
+mobileMenu.append(document.querySelector('nav').cloneNode(true));
+document.querySelector('#open-mobile-menu').onclick = () => mobileMenu.showModal();
+document.querySelector('#close-mobile-menu').onclick = () => mobileMenu.close();
+mobileMenu.addEventListener('click', event => { if (event.target.closest('a')) mobileMenu.close(); if (event.target === mobileMenu) { const box = mobileMenu.getBoundingClientRect(); if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) mobileMenu.close(); } });
+window.matchMedia('(max-width: 650px)').addEventListener('change', () => mobileMenu.close());
 document.querySelector('#open-guide').onclick = openGuide;
 document.querySelector('#close-dialog').onclick = document.querySelector('#cancel-dialog').onclick = () => dialog.close();
 document.querySelector('#create-form').onsubmit = async event => {
