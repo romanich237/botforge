@@ -39,6 +39,15 @@ async function sendPreview(event, label) {
   } catch (error) { state.history.push({ role: 'error', text: 'Ошибка сценария: ' + error.message, nodeId: state.engine.current }); }
   finally { previewBusy = false; paintChat(); document.querySelector('#chat-mount textarea')?.focus({ preventScroll: true }); disposeCanvas?.refresh?.(); window.BotForgeTour?.update(); }
 }
+function previewCommands(project, query) {
+  if (!/^\/[A-Za-z0-9_]*$/.test(query)) return [];
+  const commands = [];
+  if (project.nodes.some(n => n.type === 'start')) commands.push({ command: '/start', description: 'Начать заново' });
+  if (project.behavior?.help !== false) commands.push({ command: '/help', description: 'Список команд' });
+  if (project.behavior?.cancel !== false) commands.push({ command: '/cancel', description: 'Отменить текущий диалог' });
+  for (const node of project.nodes) if (node.type === 'command' && /^\/[A-Za-z0-9_]{1,32}$/.test(node.data.command) && !commands.some(c => c.command === node.data.command)) commands.push({ command: node.data.command, description: node.data.description || 'Команда сценария' });
+  return commands.filter(c => c.command.toLowerCase().startsWith(query.toLowerCase()));
+}
 function chatMessageText(text, disabled) {
   const span = element('span', 'chat-message-text'); const value = String(text ?? ''); let offset = 0;
   const commands = /(?<![\p{L}\p{N}_/@<])\/[A-Za-z0-9_]{1,32}(?:@[A-Za-z0-9_]{1,32})?(?![\p{L}\p{N}_/@])/gu;
@@ -74,8 +83,27 @@ function paintChat() {
   const form = element('form', 'chat-form'); const input = element('textarea'); input.placeholder = 'Сообщение или /команда'; input.rows = 1; input.maxLength = 4096; input.setAttribute('aria-label', 'Сообщение боту'); input.disabled = stale;
   const send = element('button', 'primary', '↑'); send.type = 'submit'; send.setAttribute('aria-label', 'Отправить сообщение'); send.disabled = stale || previewBusy;
   form.onsubmit = e => { e.preventDefault(); const text = input.value.trim(); if (text) sendPreview({ text }, text); };
-  input.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); form.requestSubmit(); } };
-  form.append(input, send); host.append(form);
+  const menu = element('div', 'chat-command-menu'); menu.id = 'chat-command-menu'; menu.setAttribute('role', 'listbox'); menu.setAttribute('aria-label', 'Доступные команды'); menu.hidden = true;
+  input.setAttribute('role', 'combobox'); input.setAttribute('aria-autocomplete', 'list'); input.setAttribute('aria-controls', menu.id); input.setAttribute('aria-expanded', 'false');
+  let choices = [], active = 0;
+  function closeCommands() { menu.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); }
+  function chooseCommand(index) { if (stale || previewBusy || !choices[index]) return; input.value = choices[index].command; closeCommands(); form.requestSubmit(); }
+  function highlightCommand() { for (const [i, row] of [...menu.children].entries()) row.setAttribute('aria-selected', String(i === active)); const row = menu.children[active]; if (row) { input.setAttribute('aria-activedescendant', row.id); row.scrollIntoView({ block: 'nearest' }); } }
+  input.oninput = () => {
+    choices = stale || previewBusy ? [] : previewCommands(previewState.engine.project, input.value); active = 0; menu.replaceChildren();
+    for (const [index, item] of choices.entries()) { const row = button('', () => chooseCommand(index), 'chat-command-option'); row.id = 'chat-command-option-' + index; row.setAttribute('role', 'option'); row.tabIndex = -1; row.onpointerdown = e => e.preventDefault(); row.append(element('strong', '', item.command), element('span', '', item.description)); menu.append(row); }
+    if (!choices.length) return closeCommands(); menu.hidden = false; input.setAttribute('aria-expanded', 'true'); highlightCommand();
+  };
+  input.onkeydown = e => {
+    if (e.isComposing) return;
+    if (!menu.hidden && ['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(e.key) && !e.shiftKey) {
+      e.preventDefault(); if (e.key === 'Escape') return closeCommands(); if (e.key === 'Enter') return chooseCommand(active);
+      active = (active + (e.key === 'ArrowDown' ? 1 : -1) + choices.length) % choices.length; highlightCommand(); return;
+    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+  };
+  form.onfocusout = e => { if (!form.contains(e.relatedTarget)) closeCommands(); };
+  form.append(menu, input, send); host.append(form);
   const state = element('details', 'chat-state'); state.open = location.hash === '#testing'; state.append(element('summary', '', 'Переменные и текущий шаг'));
   state.append(element('pre', '', JSON.stringify(previewState.engine.values, null, 2)));
   const current = previewState.engine.project.nodes.find(n => n.id === previewState.engine.current); if (current) state.append(element('p', 'muted', 'Шаг: ' + blockNames[current.type] + (previewState.engine.waiting ? ' · ждёт ответ' : '')));
