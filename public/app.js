@@ -10,7 +10,11 @@ let blockSearch = '', focusNode = null, advancedBlocks = false;
 let account = null, accountError = '';
 let projects = [], selectedId = sessionStorage.getItem('botforge.selected'), draft = null, dirty = false, busy = false, selectedNode = null, loadError = '', loading = true;
 function element(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
-function button(text, action, cls = '') { const b = element('button', cls, text); b.type = 'button'; b.onclick = () => Promise.resolve().then(action).catch(e => notify(e.message)); return b; }
+function icon(name) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.classList.add('ui-icon'); svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '1.8'); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use'); use.setAttribute('href', '/icons.svg#' + name); svg.append(use); return svg;
+}
+function button(text, action, cls = '') { const marks = { '✦':'sparkles', '⤢':'layout-grid', '↶':'undo-2', '▷':'play', '↓':'download', '✓':'check', '↖':'mouse-pointer-2', '＋':'plus', '+':'plus', '?':'circle-help', '×':'x', '↻':'rotate-ccw', '↑':'arrow-up' }; const mark = marks[text[0]]; const b = element('button', cls, mark ? text.slice(1).trim() : text); if (mark) { b.prepend(icon(mark)); b.classList.add('with-icon'); if (!text.slice(1).trim()) b.setAttribute('aria-label', text === '×' ? 'Закрыть' : text === '↻' ? 'Перезапустить' : text); } b.type = 'button'; b.onclick = () => Promise.resolve().then(action).catch(e => notify(e.message)); return b; }
 function notify(message) { const t = document.querySelector('#toast'); t.textContent = message; t.hidden = false; clearTimeout(notify.timer); notify.timer = setTimeout(() => { t.hidden = true; }, 6000); }
 async function api(url, method = 'GET', body) { const r = await fetch('/api/projects' + url, { method, headers: body === undefined ? {} : { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const data = await r.json(); if (!r.ok) throw Error(data.message || 'Ошибка запроса'); return data; }
 function status(text) { document.querySelector('.local-badge').textContent = text; }
@@ -169,17 +173,17 @@ function renderBuilder(page = 'builder') {
   main.append(mobileTabs);
   const builder = element('section', 'builder editor-shell tab-' + (!['builder','testing'].includes(page) ? 'properties' : page === 'testing' ? 'test' : editorTab));
   const library = element('aside', 'library'); library.append(element('div', 'panel-eyebrow', 'ИНСТРУМЕНТЫ'), element('h2', '', 'Блоки сценария'), element('p', 'muted', 'Перетащите на схему или нажмите'));
-  const icons = { start: '▶', command: '/', text: 'T', buttons: '▦', input: '↵', condition: '◇', end: '■' };
+  const icons = { start: 'play', command: 'braces', text: 'text', buttons: 'list', input: 'text-cursor-input', condition: 'git-branch', end: 'square' };
   const levels = element('div', 'library-levels');
   for (const [value, label] of [[false, 'Основные'], [true, 'Расширенные']]) { const b = button(label, () => { advancedBlocks = value; render(); }, advancedBlocks === value ? 'active' : ''); b.setAttribute('aria-pressed', String(advancedBlocks === value)); levels.append(b); } library.append(levels);
   for (const [type, name] of Object.entries(blockNames).filter(([type]) => advancedBlocks ? ['command', 'input', 'condition', 'end'].includes(type) : ['start', 'text', 'buttons'].includes(type))) {
     const b = button('', () => addNode(type), 'library-block'); b.dataset.blockType = type;
     const copy = element('span', 'library-copy'); copy.append(element('strong', '', name), element('small', '', {start:'Начало разговора',text:'Ответ вашего бота',buttons:'Выбор пользователя',command:'Отдельная команда',input:'Сохранить ответ',condition:'Разделить по условию',end:'Закончить разговор'}[type]));
-    b.append(element('span', 'block-symbol symbol-' + type, icons[type]), copy, element('span', 'add-symbol', '⠿')); b.disabled = type === 'start' && draft.nodes.some(n => n.type === 'start'); b.draggable = !b.disabled;
+    const symbol = element('span', 'block-symbol symbol-' + type); symbol.append(icon(icons[type])); const grip = element('span', 'add-symbol'); grip.append(icon('grip-vertical')); b.append(symbol, copy, grip); b.disabled = type === 'start' && draft.nodes.some(n => n.type === 'start'); b.draggable = !b.disabled;
     b.ondragstart = event => { event.dataTransfer.setData('application/botforge-block', type); event.dataTransfer.effectAllowed = 'copy'; }; b.title = blockTips[type]; b.setAttribute('aria-label', 'Добавить блок «' + name + '»'); library.append(b);
   }
   const layers = element('details', 'board-layers'); layers.open = true; layers.append(element('summary', '', 'Блоки на доске · ' + draft.nodes.length));
-  for (const node of draft.nodes) { const row = button(icons[node.type] + '  ' + (node.data.text || node.data.command || blockNames[node.type]).slice(0, 34), () => { selectedNode = node.id; focusNode = node.id; openWorkspace('builder', 'properties'); }, node.id === selectedNode ? 'active' : ''); row.title = blockNames[node.type]; layers.append(row); }
+  for (const node of draft.nodes) { const row = button((node.data.text || node.data.command || blockNames[node.type]).slice(0, 34), () => { selectedNode = node.id; focusNode = node.id; openWorkspace('builder', 'properties'); }, node.id === selectedNode ? 'active' : ''); row.prepend(icon(icons[node.type])); row.classList.add('with-icon'); row.title = blockNames[node.type]; layers.append(row); }
   library.append(layers);
   const search = document.querySelector('.block-search'); if (search) library.append(search);
   const hint = element('div', 'library-hint'); hint.append(element('strong', '', 'Соединяйте идеи'), element('p', '', 'Потяните от точки справа к входу другого блока. Каждая кнопка — отдельная ветка.')); library.append(hint);
