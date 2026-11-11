@@ -123,3 +123,4 @@ body:not(.is-welcome) #mobile-menu { background:#fafafa; color:#33353d; }
 body:not(.is-welcome) #mobile-menu nav a { color:#737784; }
 body:not(.is-welcome) #mobile-menu nav a.active { background:#e9ebef; color:#353b49; }
 body:not(.is-welcome) #mobile-menu #close-mobile-menu { color:#5b6376; background:white; border-color:#dde2ec; }
+body:not(.is-welcome) .inspector button.chat-command { display:inline; padding:0; min-height:0; border:0; background:transparent; color:#1766a6; font:inherit; font-weight:500; line-height:inherit; vertical-align:baseline; }
