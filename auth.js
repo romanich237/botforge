@@ -11,6 +11,8 @@ function createAuth(dataDir, config = {}) {
   const clientSecret = config.clientSecret ?? process.env.GOOGLE_CLIENT_SECRET;
   const origin = config.origin ?? process.env.PUBLIC_ORIGIN;
   const enabled = !!(clientId && clientSecret);
+  const origins = new Set([origin, ...(config.allowedOrigins ?? process.env.ALLOWED_ORIGINS ?? '').split(',')].filter(Boolean));
+  for (const value of origins) { const u = new URL(value); if (u.origin !== value || !['http:', 'https:'].includes(u.protocol) || (enabled && u.protocol !== 'https:')) throw Error('Недопустимый адрес ALLOWED_ORIGINS'); }
   if (!!clientId !== !!clientSecret || (process.env.GOOGLE_AUTH_REQUIRED === '1' && !enabled)) throw Error('Укажите GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET вместе');
   if (enabled && (!origin || new URL(origin).protocol !== 'https:')) throw Error('Для Google-входа нужен PUBLIC_ORIGIN с HTTPS');
   const ownerSub = config.ownerSub ?? process.env.GOOGLE_OWNER_SUB;
@@ -37,7 +39,7 @@ function createAuth(dataDir, config = {}) {
     res.setHeader('Cache-Control','no-store'); res.setHeader('Referrer-Policy','no-referrer');
     if(url.pathname==='/auth/status' && req.method==='GET'){const u=user(req);res.setHeader('Content-Type','application/json');res.end(JSON.stringify({enabled,user:u ? {name:u.name,email:u.email} : null}));return true;}
     if(!enabled)throw fail(503,'Google-вход ещё не подключён');
-    if(url.pathname==='/auth/logout' && req.method==='POST'){if(req.headers.origin!==origin)throw fail(403,'Недопустимый источник запроса');const value=cookies(req)['__Host-bf-session'];if(value)db.prepare('DELETE FROM sessions WHERE token=?').run(hash(value));res.setHeader('Set-Cookie',cookie('__Host-bf-session','',0));res.end('{}');return true;}
+    if(url.pathname==='/auth/logout' && req.method==='POST'){if(!origins.has(req.headers.origin))throw fail(403,'Недопустимый источник запроса');const value=cookies(req)['__Host-bf-session'];if(value)db.prepare('DELETE FROM sessions WHERE token=?').run(hash(value));res.setHeader('Set-Cookie',cookie('__Host-bf-session','',0));res.end('{}');return true;}
     if(req.method!=='GET')throw fail(405,'Метод не поддерживается');
     rate(req); clean();
     if(url.pathname==='/auth/google'){
@@ -61,7 +63,7 @@ function createAuth(dataDir, config = {}) {
     }
     throw fail(404,'Не найдено');
   }
-  return {enabled,user,handle,quota,reserve:owner=>reserve.immediate(owner),close:()=>db.close()};
+  return {enabled,user,handle,quota,acceptsOrigin:value=>origins.has(value),reserve:owner=>reserve.immediate(owner),close:()=>db.close()};
 }
 function hashChallenge(value) { return createHash('sha256').update(value).digest('base64url'); }
 module.exports={createAuth};

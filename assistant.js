@@ -15,6 +15,7 @@ condition: {variable:'name',operation:'eq'|'ne'|'contains'|'gt'|'lt',value:'comp
 end: {}, no outputs.
 Edge: {source:nodeId,output:string,target:nodeId}. Only one edge per source/output. No missing required edges. All blocks reachable from start or commands. Avoid automatic cycles.
 Variable: {name:string,type:'text'|'number',initial:string|number}. Unique names use letters, digits and underscore, starting with letter or underscore. Declare all variables referenced in messages as {name}.
+Editor capabilities are separate from generated bot blocks: BotForge can apply and save your validated graph and export a full project ZIP. Never say these editor actions are unavailable. The UI performs and reports saving/downloading; do not claim you executed them. In summary describe graph changes only. Unsupported integrations above refer to the generated Telegram bot, not the editor.
 Use the user's language, Russian by default. Generate a complete connected scenario. Before producing JSON, map every requested step to blocks, variables and both condition branches. Cover all requested commands, button outcomes, validation errors and return paths. Reuse shared continuations; keep the smallest complete graph. Button transitions do not assign variables: collect a choice with an input block or keep distinct branches. The only supported operations are the listed blocks: there is no payment, database, HTTP, AI-chat or admin-notification block. Never claim those integrations work; explain any missing capability or business fact in the Russian summary and use an honest draft confirmation. Built-in /help and /cancel already work; do not create reserved command nodes. No external links unless the user supplied them. Never include API keys, bot tokens or credentials. This is a draft for review, not an instruction to deploy or contact users.`;
 function parseScenario(content) {
   const text = content.trim().replace(/^\uFEFF/, '');
@@ -40,6 +41,7 @@ function parseScenario(content) {
 }
 const editInstructions = `EDIT MODE: Return a PATCH in the same nodes/edges/variables arrays, not a replacement. Include only changed or new nodes, edges and variables. Reuse existing node and button IDs exactly unless creating a new element. For changed nodes return complete data, including unchanged buttons. Never drop unrelated blocks. Existing coordinates and IDs are preserved by the server.
 To remove items, return explicit optional arrays removeNodeIds, removeEdgeIds and removeVariableNames with existing IDs/names. Edges in the context include their IDs for deletion. A new edge for an existing source/output replaces that transition. Removing a node also removes its incident edges. When removing a button include its edge ID in removeEdgeIds.
+Return optional layout:'auto' only when asked to arrange or rearrange the board; otherwise preserve existing positions. The server computes coordinates.
 Use the selectedNodeId as focus when the user refers to 'this block'; it is not permission to remove unrelated blocks. Preserve all existing variables and references unless the requested change explicitly needs a modification. Return a complete valid resulting scenario after the patch is applied. State the changes briefly in summary. Missing business facts must be clearly marked placeholders, not invented contacts.`;
 function createAssistant(config = {}) {
   const key = config.key ?? process.env.AI_API_KEY;
@@ -90,8 +92,10 @@ function createAssistant(config = {}) {
       const visited = new Set(), visiting = new Set();
       const cycle = id => { if (!automatic.has(id) || visited.has(id)) return false; if (visiting.has(id)) return true; visiting.add(id); if (draft.edges.filter(e => e.source === id).some(e => cycle(e.target))) return true; visiting.delete(id); visited.add(id); return false; };
       if ([...automatic].some(cycle)) throw error(502, 'Автоматический цикл без ожидания ввода или кнопки. Добавьте ожидание пользователя или завершите ветку.');
-      const arranged = positionProposal(project, draft, mode);
-      return { summary: typeof parsed.summary === 'string' ? parsed.summary.slice(0, 600) : 'Сценарий подготовлен. Проверьте блоки перед применением.', mode, changes: changes(project, arranged), nodes: arranged.nodes, edges: arranged.edges, variables: arranged.variables, warnings: validation.warnings };
+      if (parsed.layout !== undefined && !['auto', 'preserve'].includes(parsed.layout)) throw error(502, 'Неверная команда расположения блоков.');
+      const arranged = positionProposal(project, draft, parsed.layout === 'auto' ? 'create' : mode);
+      const movedNodeIds = arranged.nodes.filter(n => { const old = project.nodes.find(o => o.id === n.id); return old && (old.x !== n.x || old.y !== n.y); }).map(n => n.id);
+      return { summary: typeof parsed.summary === 'string' ? parsed.summary.slice(0, 600) : 'Сценарий подготовлен. Проверьте блоки перед применением.', mode, movedNodeIds, changes: changes(project, arranged), nodes: arranged.nodes, edges: arranged.edges, variables: arranged.variables, warnings: validation.warnings };
       } catch (problem) {
         if (attempt || problem.status !== 502 || signal.aborted) throw problem;
         messages.push({ role: 'assistant', content }, { role: 'user', content: 'Исправь ошибки проверки: ' + problem.message + '. Верни один полный исправленный JSON в том же режиме. В edit верни исправленный PATCH относительно исходного currentScenario, не предыдущей попытки. Сохрани требования пользователя и не добавляй неподдерживаемые функции.' });
