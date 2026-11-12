@@ -1,5 +1,5 @@
 let aiAppliedSummary = null;
-let aiAutoApply = true, aiDownloadProject = true;
+let aiAutoApply = false, aiDownloadProject = false;
 let aiMode = 'create', aiProvider = null, aiBefore = null, aiFocusId = null;
 let aiResult = null, aiBusy = false, aiPrompt = '', aiError = '', aiBaseSignature = '', aiProjectId = null, aiUndo = null;
 const aiDialog = document.querySelector('#ai-dialog');
@@ -19,7 +19,7 @@ function undoAIChange() {
 function openAssistant() {
   if (aiBusy && aiProjectId !== draft.id) return notify('Дождитесь ответа ИИ для предыдущего проекта.');
   if (aiProjectId !== draft.id) { aiProjectId = draft.id; aiResult = null; aiError = ''; aiPrompt = ''; aiMode = draft.nodes.length ? 'edit' : 'create'; }
-  renderAssistant(); aiDialog.show(); document.body.classList.add('assistant-open');
+  renderAssistant(); aiDialog.showModal(); document.body.classList.add('assistant-open');
   fetch('/api/ai/status').then(r => { if (!r.ok) throw Error(); return r.json(); }).then(info => { aiProvider = info; refreshAIStatus(); }).catch(() => { aiProvider = { configured: false, failed: true }; refreshAIStatus(); });
 }
 function refreshAIStatus() {
@@ -71,7 +71,7 @@ function renderAssistant() {
   if (aiBusy) { const working = element('div', 'ai-working'); working.setAttribute('role', 'status'); working.append(element('span', 'ai-orbit'), element('span', '', aiMode === 'question' ? 'Читаем сценарий и готовим ответ…' : 'Собираем сценарий и проверяем связи… Готовые блоки появятся после проверки.')); aiDialog.append(working); }
   if (aiMode !== 'question') { const options = element('div', 'ai-run-options'); for (const [label, value, change] of [['Применять и сохранять правки сразу', aiAutoApply, value => { aiAutoApply = value; }], ['После сохранения скачать полный проект ZIP', aiDownloadProject, value => { aiDownloadProject = value; }]]) { const row = element('label'); const input = element('input'); input.type = 'checkbox'; input.checked = value; input.disabled = aiBusy; input.onchange = () => change(input.checked); row.append(input, element('span', '', label)); options.append(row); } aiDialog.append(options); }
   const provider = element('p', 'ai-provider', 'Проверяем доступность модели…'); provider.id = 'ai-provider'; aiDialog.append(provider);
-  const label = element('label', 'field'); label.append(element('span', '', aiMode === 'question' ? 'Что хотите узнать?' : aiMode === 'edit' ? 'Что изменить?' : 'Какого бота создаём?')); const input = element('textarea'); input.rows = 5; input.maxLength = 4000; input.placeholder = aiMode === 'question' ? 'Например: как добавить проверку email или почему эта ветка не запускается?' : aiMode === 'edit' ? 'Например: добавь сбор email перед подтверждением, остальные ветки не меняй.' : 'Например: бот записи на консультацию. Узнай имя и email, предложи два направления и покажи подтверждение.'; input.value = aiPrompt; input.disabled = aiBusy; input.oninput = () => { aiPrompt = input.value; }; label.append(input); aiDialog.append(label);
+  const label = element('label', 'field'); label.append(element('span', '', aiMode === 'question' ? 'Что хотите узнать?' : aiMode === 'edit' ? 'Что изменить?' : 'Какого бота создаём?')); const input = element('textarea'); input.rows = 5; input.setAttribute('aria-label', 'Запрос к ИИ'); input.maxLength = 4000; input.placeholder = aiMode === 'question' ? 'Например: как добавить проверку email или почему эта ветка не запускается?' : aiMode === 'edit' ? 'Например: добавь сбор email перед подтверждением, остальные ветки не меняй.' : 'Например: бот записи на консультацию. Узнай имя и email, предложи два направления и покажи подтверждение.'; input.value = aiPrompt; input.disabled = aiBusy; input.oninput = () => { aiPrompt = input.value; }; label.append(input); aiDialog.append(label);
   aiDialog.append(element('p', 'ai-privacy ai-provider-notice', 'Описание и схема отправляются подключённому ИИ-провайдеру (' + (aiProvider?.provider || 'адрес загружается') + '). Не указывайте пароли и личные данные. Запрос расходует дневной лимит и баланс API; при ошибке схемы возможна одна попытка исправления.'));
   if (!aiBusy && !aiResult) { const examples = element('div', 'ai-examples'); for (const prompt of aiMode === 'question' ? ['Как добавить проверку email?', 'Объясни, как работает текущий сценарий.'] : aiMode === 'edit' ? ['Добавь команду /helpme с краткой инструкцией, сохрани остальные ветки.', 'Добавь сбор имени перед приветствием и обращайся к пользователю по имени.'] : ['Бот записи: имя, email, выбор услуги и подтверждение.', 'Приветствие и две кнопки: О нас и Контакты.']) examples.append(button(prompt, () => { aiPrompt = prompt; input.value = prompt; input.focus(); }, 'text-button')); aiDialog.append(examples); }
   if (aiError) { const error = element('p', 'ai-error', aiError); error.setAttribute('role', 'alert'); aiDialog.append(error); }
