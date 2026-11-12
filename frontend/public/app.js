@@ -10,6 +10,7 @@ let blockSearch = '', focusNode = null, advancedBlocks = false;
 let account = null, accountError = '';
 let projects = [], selectedId = sessionStorage.getItem('botforge.selected'), draft = null, dirty = false, busy = false, selectedNode = null, loadError = '', loading = true;
 let autosaveTimer = null, autosaveQueued = false;
+let validationResult = null;
 function element(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
 function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.classList.add('ui-icon'); svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '1.8'); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
@@ -199,6 +200,29 @@ function addNode(type, position) {
   if (!Object.hasOwn(blockNames, type) || (type === 'start' && draft.nodes.some(n => n.type === 'start'))) return;
   const id = crypto.randomUUID(); draft.nodes.push({ id, type, x: position?.x ?? draft.nodes.length % 3 * 320, y: position?.y ?? Math.floor(draft.nodes.length / 3) * 240, data: { text: '', command: '', variable: '', validation: 'text', error: 'Проверьте введённое значение', operation: 'eq', value: '', placement: 'inline', buttons: [] } }); selectedNode = id; changed(); openWorkspace('builder', 'properties');
 }
+function deleteNode(id, { confirmFirst = false } = {}) {
+  const index = draft?.nodes.findIndex(node => node.id === id) ?? -1;
+  if (index < 0) return false;
+  const node = structuredClone(draft.nodes[index]);
+  const edges = structuredClone(draft.edges.filter(edge => edge.source === id || edge.target === id));
+  if (confirmFirst && !confirm('Удалить блок и его связи?')) return false;
+  draft.nodes.splice(index, 1);
+  draft.edges = draft.edges.filter(edge => edge.source !== id && edge.target !== id);
+  if (selectedNode === id) selectedNode = null;
+  if (focusNode === id) focusNode = null;
+  changed(); render();
+  notify('Блок удалён', {
+    label: 'Восстановить',
+    run: () => {
+      if (!draft || draft.nodes.some(item => item.id === node.id)) return;
+      draft.nodes.splice(Math.min(index, draft.nodes.length), 0, node);
+      const nodeIds = new Set(draft.nodes.map(item => item.id));
+      for (const edge of edges) if (nodeIds.has(edge.source) && nodeIds.has(edge.target) && !draft.edges.some(item => item.id === edge.id)) draft.edges.push(edge);
+      selectedNode = node.id; changed(); render();
+    }
+  });
+  return true;
+}
 function connectBlocks(source, output, target) {
   if (!draft.nodes.some(n => n.id === target) || !draft.nodes.some(n => n.id === source && outputs(n).some(o => o[0] === output))) return;
   draft.edges = draft.edges.filter(e => !(e.source === source && e.output === output));
@@ -289,6 +313,7 @@ function renderBuilder(page = 'builder') {
   builder.append(library, center);
   const inspector = element('aside', 'inspector'); inspector.setAttribute('aria-label', 'Панель ' + titles[page]); const panelMode = !['builder','testing'].includes(page); const testing = page === 'testing'; const tabs = element('div', 'inspector-tabs'); for (const [id, label] of [['properties','Свойства'],['test','Проверить чат']]) { const b = button(label, () => { openWorkspace(id === 'test' ? 'testing' : 'builder', id); }, (testing ? id === 'test' : id === 'properties') ? 'active' : ''); if (id === 'test') b.dataset.tour = 'preview'; tabs.append(b); } if (!panelMode) inspector.append(tabs);
   if (panelMode) renderWorkspacePanel(page, inspector); else {
+  if (!testing && validationResult) renderValidationPanel(inspector);
   const picker = element('label', 'field block-picker'); picker.append(element('span', '', 'Выберите блок')); const select = element('select'); const placeholder = element('option', '', 'Выберите блок на схеме или в списке'); placeholder.value = ''; select.append(placeholder);
   for (const n of draft.nodes) { const option = element('option', '', blockNames[n.type] + ' · ' + (n.data.text || n.data.command || n.id.slice(0, 6)).slice(0, 40)); option.value = n.id; select.append(option); }
   select.value = selectedNode || ''; select.onchange = () => { selectedNode = select.value || null; render(); }; picker.append(select); if (!testing) inspector.append(picker);
@@ -351,9 +376,30 @@ function renderProperties(n, target = main) {
     panel.append(button('+ Добавить кнопку', () => { d.buttons.push({ id: crypto.randomUUID(), label: 'Кнопка', action: 'transition' }); changed(); render(); }));
   }
   for (const [output, label] of outputs(n)) field(panel, 'Переход · ' + label, draft.edges.find(e => e.source === n.id && e.output === output)?.target || '', target => { draft.edges = draft.edges.filter(e => !(e.source === n.id && e.output === output)); if (target) draft.edges.push({ id: crypto.randomUUID(), source: n.id, output, target }); }, [['', 'Конец / не настроено'], ...draft.nodes.map(t => [t.id, blockNames[t.type] + ' · ' + (t.data.text || t.data.command || t.id.slice(0, 6)).slice(0, 40)])]);
-  const actions = element('div', 'dialog-actions'); actions.append(button('Обновить схему', render), button('Дублировать', () => { const copy = structuredClone(n); copy.id = crypto.randomUUID(); copy.x += 30; copy.y += 30; if (copy.type === 'start') return notify('В проекте разрешён один старт'); if (copy.data.buttons) copy.data.buttons.forEach(b => { b.id = crypto.randomUUID(); }); draft.nodes.push(copy); selectedNode = copy.id; changed(); render(); }), button('Удалить блок', () => { if (!confirm('Удалить блок и его связи?')) return; draft.nodes = draft.nodes.filter(t => t.id !== n.id); draft.edges = draft.edges.filter(e => e.source !== n.id && e.target !== n.id); selectedNode = null; changed(); render(); })); panel.append(actions); target.append(panel);
+  const actions = element('div', 'dialog-actions'); actions.append(button('Обновить схему', render), button('Дублировать', () => { const copy = structuredClone(n); copy.id = crypto.randomUUID(); copy.x += 30; copy.y += 30; if (copy.type === 'start') return notify('В проекте разрешён один старт'); if (copy.data.buttons) copy.data.buttons.forEach(b => { b.id = crypto.randomUUID(); }); draft.nodes.push(copy); selectedNode = copy.id; changed(); render(); }), button('Удалить блок', () => deleteNode(n.id, { confirmFirst: true }))); panel.append(actions); target.append(panel);
 }
-async function validateProject() { const result = await api('/' + draft.id + '/validate', 'POST', draft); document.querySelector('#validation')?.remove(); const panel = element('section', 'properties'); panel.id = 'validation'; panel.setAttribute('role', 'status'); panel.append(element('h2', '', result.valid ? 'Проверка пройдена' : 'Исправьте ошибки: ' + result.errors.length)); for (const issue of [...result.errors, ...result.warnings]) panel.append(button(issue.message, () => { if (issue.nodeId) { selectedNode = issue.nodeId; location.hash = 'builder'; render(); } })); main.append(panel); panel.scrollIntoView({ block: 'nearest' }); }
+function renderValidationPanel(target) {
+  if (!validationResult) return;
+  const panel = element('section', 'validation-panel'); panel.id = 'validation'; panel.setAttribute('role', 'status');
+  const heading = element('div', 'validation-heading');
+  heading.append(element('h2', '', validationResult.valid ? 'Схема готова' : 'Ошибки схемы · ' + validationResult.errors.length));
+  const close = button('×', () => { validationResult = null; render(); }, 'icon-button'); close.setAttribute('aria-label', 'Закрыть результаты проверки'); heading.append(close); panel.append(heading);
+  const issues = [...validationResult.errors, ...validationResult.warnings];
+  if (!issues.length) panel.append(element('p', 'muted', 'Ошибок и предупреждений нет.'));
+  for (const issue of issues) {
+    const row = button(issue.message, () => {
+      if (!issue.nodeId) return;
+      selectedNode = issue.nodeId; validationResult = null; openWorkspace('builder', 'properties');
+    }, 'validation-issue');
+    row.prepend(icon(issue.nodeId ? 'arrow-up' : 'circle-help')); panel.append(row);
+  }
+  target.append(panel);
+}
+async function validateProject() {
+  validationResult = await api('/' + draft.id + '/validate', 'POST', draft);
+  editorTab = 'properties';
+  openWorkspace('builder', 'properties');
+}
 function renderVariables(target = main) {
   heading('Переменные', 'Начальные значения и данные, которые собирает бот.', target);
   const list = element('div', 'variable-list');
@@ -418,6 +464,13 @@ document.querySelector('#create-form').onsubmit = async event => {
   const submit = event.submitter; submit.disabled = true;
   try { const p = await api('', 'POST', { name }); projects.unshift(p); dialog.close(); render(); notify('Проект создан на сервере'); } catch (e) { notify(e.message); } finally { submit.disabled = false; }
 };
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Delete' || event.repeat || !draft || !selectedNode || location.hash !== '#builder') return;
+  const target = event.target;
+  if (target?.closest?.('input, textarea, select, [contenteditable="true"]') || target?.isContentEditable || document.querySelector('dialog[open]')) return;
+  event.preventDefault();
+  deleteNode(selectedNode);
+});
 window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('hashchange', render);
 window.matchMedia('(max-width: 650px)').addEventListener('change', () => { canvasViewport = null; render(); });
