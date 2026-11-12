@@ -136,3 +136,25 @@ body:not(.is-welcome) #mobile-menu #close-mobile-menu { color:#5b6376; backgroun
 @media (max-width: 375px) {
   .project-card .card-actions .open { flex-basis: 100%; }
 }
+
+.variable-list { display: grid; gap: 12px; margin-bottom: 16px; container-type: inline-size; }
+.variable-list .variable-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  align-items: end;
+}
+.variable-list .variable-row .field { min-width: 0; margin: 0; }
+.variable-list .variable-row :is(input, select) { width: 100%; min-height: 44px; }
+.variable-list .variable-row > button { justify-self: start; min-height: 44px; }
+.variable-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin-top: 12px; }
+.variable-actions > button { margin: 0; min-height: 44px; }
+@container (min-width: 420px) {
+  .variable-list .variable-row { grid-template-columns: minmax(0, 1fr) minmax(95px, .65fr); }
+}
+@container (min-width: 620px) {
+  .variable-list .variable-row { grid-template-columns: minmax(0, 1fr) minmax(95px, .65fr) minmax(0, 1fr) auto; }
+}
+@media (max-width: 650px) {
+  .variable-list .variable-row :is(input, select) { font-size: 16px; }
+}

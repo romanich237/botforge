@@ -174,7 +174,7 @@ function renderWorkspacePanel(page, target) {
   else if (page === 'guide') renderGuide(target);
   else if (page === 'settings') { heading('Настройки проекта', 'Название и описание', target); const panel = element('section', 'properties'); field(panel, 'Название', draft.name, v => { draft.name = v; }); field(panel, 'Описание', draft.description, v => { draft.description = v; }); target.append(panel); }
   target.querySelector('.page-heading h1')?.remove();
-  if (['behavior','variables','settings'].includes(page)) target.append(button('Сохранить изменения', saveProject, 'primary'));
+  if (['behavior','settings'].includes(page)) target.append(button('Сохранить изменения', saveProject, 'primary'));
 }
 function renderBuilder(page = 'builder') {
   const h = heading('Сценарий бота', 'Telegram · Добавьте блоки, соедините и сохраните');
@@ -277,11 +277,15 @@ function renderProperties(n, target = main) {
 async function validateProject() { const result = await api('/' + draft.id + '/validate', 'POST', draft); document.querySelector('#validation')?.remove(); const panel = element('section', 'properties'); panel.id = 'validation'; panel.setAttribute('role', 'status'); panel.append(element('h2', '', result.valid ? 'Проверка пройдена' : 'Исправьте ошибки: ' + result.errors.length)); for (const issue of [...result.errors, ...result.warnings]) panel.append(button(issue.message, () => { if (issue.nodeId) { selectedNode = issue.nodeId; location.hash = 'builder'; render(); } })); main.append(panel); panel.scrollIntoView({ block: 'nearest' }); }
 function renderVariables(target = main) {
   heading('Переменные', 'Начальные значения и данные, которые собирает бот.', target);
+  const list = element('div', 'variable-list');
+  if (draft.variables.length) target.append(list);
   for (const v of draft.variables) {
     const row = element('section', 'properties variable-row'); field(row, 'Имя', v.name, value => { v.name = value; }); field(row, 'Тип', v.type, value => { v.type = value; v.initial = value === 'number' ? 0 : ''; render(); }, [['text', 'Текст'], ['number', 'Число']]); field(row, 'Начальное значение', v.initial, value => { v.initial = v.type === 'number' ? (value.trim() ? Number(value) : null) : value; });
-    row.append(button('Удалить', () => { const used = draft.nodes.filter(n => n.data.variable === v.name || JSON.stringify(n.data).includes('{' + v.name + '}')); if (confirm('Удалить переменную?' + (used.length ? ' Используется: ' + used.map(n => blockNames[n.type] + ' ' + n.id.slice(0, 6)).join(', ') : ''))) { draft.variables = draft.variables.filter(x => x !== v); changed(); render(); } })); target.append(row);
+    row.append(button('Удалить', () => { const used = draft.nodes.filter(n => n.data.variable === v.name || JSON.stringify(n.data).includes('{' + v.name + '}')); if (confirm('Удалить переменную?' + (used.length ? ' Используется: ' + used.map(n => blockNames[n.type] + ' ' + n.id.slice(0, 6)).join(', ') : ''))) { draft.variables = draft.variables.filter(x => x !== v); changed(); render(); } })); list.append(row);
   }
-  target.append(button('+ Переменная', () => { draft.variables.push({ name: 'переменная_' + (draft.variables.length + 1), type: 'text', initial: '' }); changed(); render(); }));
+  const actions = element('div', 'variable-actions');
+  actions.append(button('+ Переменная', () => { draft.variables.push({ name: 'переменная_' + (draft.variables.length + 1), type: 'text', initial: '' }); changed(); render(); }), button('Сохранить изменения', saveProject, 'primary'));
+  target.append(actions);
 }
 function renderBehavior(target = main) {
   heading('Поведение бота', 'Эти настройки действуют в предпросмотре и скачанном боте.', target);
