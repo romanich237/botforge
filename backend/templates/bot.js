@@ -18,8 +18,12 @@ async function telegram(method, data) {
   return result.result;
 }
 function markup(event) {
-  if (event.placement === 'keyboard' && event.buttons.length) return { keyboard: event.buttons.map(b => [{ text: b.label }]), resize_keyboard: true };
-  if (event.buttons.length) return { inline_keyboard: event.buttons.map(b => [b.action === 'url' ? { text: b.label, url: b.url } : { text: b.label, callback_data: b.callback }]) };
+  const buttons = event.buttons || [];
+  const columns = Math.max(1, Math.min(4, Number(event.columns) || 1));
+  const rows = [];
+  for (let i = 0; i < buttons.length; i += columns) rows.push(buttons.slice(i, i + columns).map(b => event.placement === 'keyboard' ? { text: b.label } : b.action === 'url' ? { text: b.label, url: b.url } : { text: b.label, callback_data: b.callback }));
+  if (event.placement === 'keyboard' && buttons.length) return { keyboard: rows, resize_keyboard: true, one_time_keyboard: !!event.oneTime };
+  if (buttons.length) return { inline_keyboard: rows };
   return { remove_keyboard: true };
 }
 async function deliver(session, events, call = telegram) {
