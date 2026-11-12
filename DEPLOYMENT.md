@@ -12,10 +12,10 @@ Configure these repository secrets:
 - `SSH_KNOWN_HOSTS`: trusted host-key line produced by `ssh-keyscan -H SERVER` and
   verified against the server's own SSH host-key fingerprint.
 - `SSH_PORT`: optional; defaults to `22`.
-- `DEPLOY_PATH`: optional; defaults to `/opt/botforge`.
+- `DEPLOY_PATH`: optional; defaults to `/root/botforge`.
 
 Do not put application secrets in GitHub. Production values live only on the
-server in `/opt/botforge/shared/.env`. The first deployment creates that file
+server in `/root/botforge/shared/.env`. The first deployment creates that file
 from `.env.example`; edit it on the server and rerun the workflow.
 
 ## One-time Ubuntu preparation
@@ -23,8 +23,7 @@ from `.env.example`; edit it on the server and rerun the workflow.
 Install Node.js 24 and give the deployment user ownership of the target:
 
 ```sh
-sudo mkdir -p /opt/botforge
-sudo chown -R "$USER":"$USER" /opt/botforge
+mkdir -p /root/botforge
 node --version
 npm --version
 ```
@@ -46,4 +45,4 @@ pm2 save
 ```
 
 The web process listens on `127.0.0.1:3000`; expose it through Nginx or another
-reverse proxy. Keep `/opt/botforge/shared` in server backups.
+reverse proxy. Keep `/root/botforge/shared` in server backups.
