@@ -6,8 +6,10 @@
 | --- | --- |
 | `botforge.service` | Запускает `node server.js` из `~/botforge` |
 | `botforge-update.service` | Запускает `/bin/bash deploy/update.sh` из `~/botforge` с Node.js и npm в PATH |
-| `botforge-update.timer` | Проверяет GitHub каждые две минуты |
+| `botforge-update.timer` | Проверяет GitHub каждые 10 секунд |
 | Nginx и Certbot | Проксируют трафик и обслуживают HTTPS |
+
+Настройте интервал командой `bash deploy/configure-update-timer.sh` под пользователем `botforge`.
 
 Службы пользователя находятся в `~/.config/systemd/user/`. Чтобы они запускались после перезагрузки VPS, администратор включает `loginctl enable-linger botforge`.
 

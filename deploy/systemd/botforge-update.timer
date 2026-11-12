@@ -1,0 +1,11 @@
+[Unit]
+Description=Check BotForge updates every ten seconds
+
+[Timer]
+OnBootSec=10s
+OnUnitInactiveSec=10s
+AccuracySec=1s
+Unit=botforge-update.service
+
+[Install]
+WantedBy=timers.target

@@ -252,3 +252,28 @@ body:not(.is-welcome) .toast-action {
   .project-menu-panel { position: fixed; top: auto; right: 16px; bottom: 16px; left: 16px; width: auto; }
   body:not(.is-welcome) .project-menu-panel button { min-height: 46px; }
 }
+
+
+/* Light workspace */
+html, body, .workspace, body:not(.is-welcome) main { background: #fff; }
+body:not(.is-welcome) .topbar,
+body:not(.is-welcome) .editor-page > .page-heading {
+  background: #fff;
+  color: #292c34;
+  border-color: #dfe2e8;
+}
+body:not(.is-welcome) .editor-page > .page-heading h1 { color: #292c34; }
+body:not(.is-welcome) .editor-page > .page-heading button {
+  background: #fff;
+  color: #4e5563;
+  border-color: #d9dde5;
+}
+body:not(.is-welcome) .editor-page > .page-heading button:hover { background: #f6f7f9; }
+body:not(.is-welcome) .editor-page > .page-heading button.primary {
+  background: #292c34;
+  color: #fff;
+  border-color: #292c34;
+}
+body:not(.is-welcome) .editor-shell .library,
+body:not(.is-welcome) .inspector,
+body:not(.is-welcome) .flow-canvas { background-color: #fff; }
