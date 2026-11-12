@@ -21,7 +21,7 @@ function createAuth(dataDir, config = {}) {
   const now = config.now ?? Date.now;
   const daily = Number(config.daily ?? process.env.AI_DAILY_LIMIT ?? (enabled ? 5 : 20));
   const globalDaily = Number(config.globalDaily ?? process.env.AI_GLOBAL_DAILY_LIMIT ?? 100);
-  const startingCredits = Number(config.startingCredits ?? process.env.AI_STARTING_CREDITS ?? 20);
+  const startingCredits = Number(config.startingCredits ?? process.env.AI_STARTING_CREDITS ?? 10);
   const tokensPerCredit = 1000;
   if (![daily,globalDaily,startingCredits].every(n => Number.isSafeInteger(n) && n > 0)) throw Error('Лимиты ИИ и стартовые кредиты должны быть положительными целыми числами');
   fs.mkdirSync(dataDir,{recursive:true,mode:0o700});
