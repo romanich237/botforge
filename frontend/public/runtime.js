@@ -14,7 +14,7 @@
       const token = this.key + '-' + String(++this.sequence);
       const buttons = node?.type === 'buttons' ? node.data.buttons.map((b, i) => ({ label: b.label, action: b.action, url: b.url || null, callback: token + ':' + i })) : [];
       if (buttons.length) this.menus[token] = { nodeId: node.id, buttons, placement: node.data.placement || 'inline' };
-      return { type: 'message', text: this.text(text), buttons, token, placement: node?.data.placement || 'inline' };
+      return { type: 'message', text: this.text(text), buttons, token, placement: node?.data.placement || 'inline', columns: node?.data.columns || 1, oneTime: !!node?.data.oneTime };
     }
     run(id, now) {
       const events = [];
