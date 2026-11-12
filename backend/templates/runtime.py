@@ -136,7 +136,10 @@ class Session:
                 return events + [self.message(b.get('unknownCommandText') or 'Неизвестная команда. Введите /help')] if b.get('unknownCommand') else events
             else:
                 keyboard = next((m for m in reversed(list(self.menus.values())) if m['placement'] == 'keyboard' and any(c['label'] == text for c in m['buttons'])), None)
-                if keyboard:
+                trigger = next((n for n in self.project['nodes'] if n['type'] == 'command' and n['data'].get('triggerText', '').strip() and (lambda phrase, value: phrase == value or (n['data'].get('triggerMode', 'exact') == 'contains' and phrase in value))((n['data']['triggerText'].strip().lower() if b.get('ignoreCase') else n['data']['triggerText'].strip()), (text.lower() if b.get('ignoreCase') else text))), None)
+                if trigger:
+                    target = trigger['id']
+                elif keyboard:
                     index = next(i for i, c in enumerate(keyboard['buttons']) if c['label'] == text)
                     target = self.next(keyboard['nodeId'], self.node(keyboard['nodeId'])['data']['buttons'][index]['id'])
                 elif self.waiting:
