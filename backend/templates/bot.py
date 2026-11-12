@@ -42,12 +42,15 @@ def telegram(method, data):
 
 def markup(event):
     buttons = event.get('buttons', [])
+    columns = max(1, min(4, int(event.get('columns') or 1)))
+    rows = []
+    for i in range(0, len(buttons), columns):
+        rows.append([dict(text=b['label'], **({} if event.get('placement') == 'keyboard' else {'url': b['url']} if b['action'] == 'url' else {'callback_data': b['callback']})) for b in buttons[i:i + columns]])
     if event.get('placement') == 'keyboard' and buttons:
-        return dict(keyboard=[[dict(text=b['label'])] for b in buttons], resize_keyboard=True)
+        return dict(keyboard=rows, resize_keyboard=True, one_time_keyboard=bool(event.get('oneTime')))
     if buttons:
-        return dict(inline_keyboard=[[dict(text=b['label'], **({'url': b['url']} if b['action'] == 'url' else {'callback_data': b['callback']}))] for b in buttons])
+        return dict(inline_keyboard=rows)
     return dict(remove_keyboard=True)
-
 
 def deliver(session, events, call=telegram):
     b = session['engine'].behavior
