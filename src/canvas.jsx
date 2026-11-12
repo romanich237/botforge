@@ -3,11 +3,11 @@ import { createRoot } from 'react-dom/client';
 import { ReactFlow, Background, Controls, MiniMap, Handle, Position, applyNodeChanges, applyEdgeChanges, MarkerType, useReactFlow, useNodesInitialized } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-const icons = { start: 'play', command: 'braces', text: 'text', buttons: 'list', input: 'text-cursor-input', condition: 'git-branch', end: 'square' };
+const icons = { start: '▶', command: '/', text: 'T', buttons: '▦', input: '↵', condition: '◇', end: '■' };
 function ScenarioNode({ data, selected }) {
   return <div className={'scenario-node type-' + data.type + (selected ? ' is-selected' : '') + (data.active ? ' is-active' : '')}>
     <Handle type="target" position={Position.Left} aria-label={'Вход · ' + data.title} />
-    <div className="scenario-node-title"><span className="block-symbol"><svg className="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><use href={"/icons.svg#" + icons[data.type]} /></svg></span><strong>{data.title}</strong><span className="node-menu">···</span></div>
+    <div className="scenario-node-title"><span className="block-symbol">{icons[data.type]}</span><strong>{data.title}</strong><span className="node-menu">···</span></div>
     <div className="scenario-node-body">{data.text || (data.type === 'start' ? 'Запуск по /start' : data.type === 'end' ? 'Конец ветки' : 'Нажмите, чтобы настроить')}</div>
     {data.outputs.map(([id, label]) => <div className="scenario-output" key={id}><span>{label}</span><Handle id={id} type="source" position={Position.Right} aria-label={'Выход · ' + label} /></div>)}
   </div>;

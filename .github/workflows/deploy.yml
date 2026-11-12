@@ -1,0 +1,119 @@
+name: Deploy to Ubuntu
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/botforge' }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SSH_HOST" || { echo 'Missing SSH_HOST secret'; exit 1; }
+          test -n "$SSH_USER" || { echo 'Missing SSH_USER secret'; exit 1; }
+          test -n "$SSH_PRIVATE_KEY" || { echo 'Missing SSH_PRIVATE_KEY secret'; exit 1; }
+          test -n "$SSH_KNOWN_HOSTS" || { echo 'Missing SSH_KNOWN_HOSTS secret'; exit 1; }
+          [[ "$SSH_PORT" =~ ^[0-9]+$ ]] || { echo 'SSH_PORT must be numeric'; exit 1; }
+          [[ "$DEPLOY_PATH" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo 'DEPLOY_PATH is invalid'; exit 1; }
+
+      - name: Install, build, and check
+        run: |
+          npm ci
+          npm run check
+          npm run build
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload release
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar \
+            --exclude=.git \
+            --exclude=.github \
+            --exclude=node_modules \
+            --exclude=data \
+            --exclude=.env \
+            -czf /tmp/botforge-${GITHUB_SHA}.tar.gz .
+          scp -P "$SSH_PORT" -i ~/.ssh/deploy_key \
+            /tmp/botforge-${GITHUB_SHA}.tar.gz \
+            "$SSH_USER@$SSH_HOST:/tmp/botforge-${GITHUB_SHA}.tar.gz"
+
+      - name: Activate release with PM2
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' RELEASE_SHA='$GITHUB_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+          release="$DEPLOY_PATH/releases/$RELEASE_SHA"
+          shared="$DEPLOY_PATH/shared"
+
+          mkdir -p "$release" "$shared/data"
+          tar -xzf "/tmp/botforge-$RELEASE_SHA.tar.gz" -C "$release"
+          rm -f "/tmp/botforge-$RELEASE_SHA.tar.gz"
+
+          if [ ! -f "$shared/.env" ]; then
+            cp "$release/.env.example" "$shared/.env"
+            chmod 600 "$shared/.env"
+            echo "Created $shared/.env; fill in production values on the server."
+          fi
+
+          ln -sfn "$shared/.env" "$release/.env"
+          ln -sfn "$shared/data" "$release/data"
+          cd "$release"
+          npm ci
+          npm run check
+          npm run build
+          npm prune --omit=dev
+
+          if ! command -v pm2 >/dev/null 2>&1; then
+            npm install --global pm2 || sudo -n npm install --global pm2
+          fi
+
+          ln -sfn "$release" "$DEPLOY_PATH/current"
+          cd "$DEPLOY_PATH/current"
+          set -a
+          . ./.env
+          set +a
+          pm2 startOrReload ecosystem.config.cjs --update-env
+          pm2 save
+
+          find "$DEPLOY_PATH/releases" -mindepth 1 -maxdepth 1 -type d \
+            ! -path "$release" -printf '%T@ %p\n' | sort -nr | tail -n +4 | cut -d' ' -f2- | xargs -r rm -rf --
+          REMOTE
+

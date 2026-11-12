@@ -810,15 +810,3 @@ nav a .ui-icon { width:22px; height:22px; }
   .welcome-bottom { font-size:10px; line-height:1.7; }
   .welcome-bottom span:last-child { width:100%; margin:0; }
 }
-.chat-message-text { white-space:pre-wrap; overflow-wrap:anywhere; }
-.chat-message .chat-command,.chat-empty .chat-command,body:not(.is-welcome) .inspector .chat-command { display:inline; border:0; border-radius:2px; padding:0; min-height:0; background:transparent; color:#1766a6; font:inherit; font-weight:500; line-height:inherit; text-align:inherit; box-shadow:none; vertical-align:baseline; }
-.chat-command:hover { text-decoration:underline; }
-.chat-command:disabled { color:inherit; opacity:.55; cursor:default; text-decoration:none; }
-.chat-empty > .chat-message-text { display:block; margin:12px 0; }
-.chat-form { position:relative; }
-.chat-command-menu { position:absolute; z-index:5; bottom:100%; left:0; right:0; max-height:min(220px,35dvh); overflow-y:auto; overscroll-behavior:contain; padding:4px 0; background:white; border-top:1px solid #dfe3eb; box-shadow:0 -4px 14px #1823380d; }
-.chat-command-menu[hidden] { display:none; }
-.chat-form button.chat-command-option { display:flex; align-items:center; gap:12px; width:100%; height:auto; min-height:44px; padding:10px 14px; border:0; border-radius:0; font-size:12px; text-align:left; background:white; color:#4c576c; }
-.chat-command-option strong { flex:0 0 auto; font-weight:500; color:#1766a6; }
-.chat-command-option span { min-width:0; overflow-wrap:anywhere; font-size:11px; color:#7c8596; }
-.chat-command-option[aria-selected="true"] { background:#eef3fa; }
