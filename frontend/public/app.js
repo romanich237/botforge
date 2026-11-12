@@ -419,6 +419,8 @@ function renderProperties(n, target = main) {
   if (n.type === 'condition') { field(panel, 'Операция', d.operation, v => { d.operation = v; }, [['eq', 'Равно'], ['ne', 'Не равно'], ['contains', 'Содержит'], ['gt', 'Больше'], ['lt', 'Меньше']]); field(panel, 'Значение', d.value, v => { d.value = v; }); }
   if (n.type === 'buttons') {
     field(panel, 'Расположение', d.placement, v => { d.placement = v; }, [['inline', 'Под сообщением'], ['keyboard', 'Нижняя клавиатура']]);
+    field(panel, 'Кнопок в строке', String(d.columns || 1), v => { d.columns = Number(v); }, [['1', '1'], ['2', '2'], ['3', '3'], ['4', '4']]);
+    if (d.placement === 'keyboard') { const row = element('label', 'check-row'); const check = element('input'); check.type = 'checkbox'; check.checked = !!d.oneTime; check.onchange = () => { d.oneTime = check.checked; changed(); }; row.append(check, document.createTextNode('Скрывать клавиатуру после нажатия')); panel.append(row); }
     for (const [index, b] of d.buttons.entries()) {
       const row = element('div', 'button-row'); field(row, 'Подпись', b.label, v => { b.label = v; }); field(row, 'Действие', b.action, v => { b.action = v; draft.edges = draft.edges.filter(e => !(e.source === n.id && e.output === b.id)); changed(); render(); }, [['transition', 'Переход'], ['url', 'Ссылка']]);
       const order = element('div', 'button-order');
