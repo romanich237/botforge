@@ -6,7 +6,10 @@ export GIT_TERMINAL_PROMPT=0
 
 git_dir=$(git rev-parse --absolute-git-dir)
 exec 9>"$git_dir/botforge-update.lock"
-flock -n 9 || exit 0
+if ! flock -n 9; then
+  echo 'BotForge: обновление уже выполняется, повторный запуск пропущен.'
+  exit 0
+fi
 
 if [[ $(git branch --show-current) != main || -n $(git status --porcelain --untracked-files=no) ]]; then
   echo 'BotForge: требуется чистая рабочая копия ветки main.' >&2
@@ -31,6 +34,7 @@ git merge --ff-only "$target"
 npm ci --include=dev
 npm run check
 npm run build
+npm test
 systemctl --user restart botforge.service
 printf '%s\n' "$target" > "$stamp"
 echo "BotForge: установлен $target"
