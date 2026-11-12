@@ -217,6 +217,18 @@ function showNodeMenu(id, x, y) {
   setTimeout(() => document.addEventListener('pointerdown', close), 0);
   menu.addEventListener('keydown', e => { if (e.key === 'Escape') { menu.remove(); } });
 }
+function showCanvasMenu(kind, id, x, y) {
+  document.querySelector('#bf-context-menu')?.remove();
+  const menu = element('div', 'bf-context-menu'); menu.id = 'bf-context-menu'; menu.setAttribute('role', 'menu');
+  menu.style.left = Math.max(8, Math.min(x, window.innerWidth - 200)) + 'px'; menu.style.top = Math.max(8, Math.min(y, window.innerHeight - 180)) + 'px';
+  const item = (title, action) => menu.append(button(title, () => { menu.remove(); action(); }));
+  if (kind === 'edge') item('Удалить связь', () => deleteSelection({ nodeIds: [], edgeIds: [id] }));
+  else { item('Вставить блоки', pasteCopiedBlocks); item('Добавить текст', () => addNode('text')); item('Отменить', undoEditor); item('Повторить', redoEditor); }
+  document.body.append(menu); menu.querySelector('button')?.focus();
+  const close = event => { if (!menu.contains(event.target)) { menu.remove(); document.removeEventListener('pointerdown', close); } };
+  setTimeout(() => document.addEventListener('pointerdown', close), 0);
+  menu.addEventListener('keydown', event => { if (event.key === 'Escape') menu.remove(); });
+}
 function copySelectedBlocks() {
   const ids = selectedNodeIds.size ? [...selectedNodeIds] : selectedNode ? [selectedNode] : [];
   const count = window.BotForgeClipboard.copy(draft, ids);
@@ -392,6 +404,8 @@ function renderBuilder(page = 'builder') {
     },
     focus: focusNode,
     contextNode: (id, x, y) => showNodeMenu(id, x, y),
+    contextEdge: (id, x, y) => showCanvasMenu('edge', id, x, y),
+    contextPane: (x, y) => showCanvasMenu('pane', null, x, y),
     reconnect: (edge, connection) => {
       if (!window.BotForgeEditor.reconnect(draft, edge.id, connection)) return notify('Этот выход уже занят или соединение недопустимо. Связь сохранена.');
       changed(); render();
