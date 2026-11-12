@@ -95,6 +95,15 @@ async function main() {
         if (!session) { session = { engine: new Session(project), chatId: message.chat.id, messages: {}, lastMessage: null }; sessions.set(key, session); }
         const event = callback ? { callback: callback.data } : { text: message.text || '' };
         enqueue(session, async () => {
+          if (project.behavior?.subscriptionChat) {
+            let member;
+            try { member = await telegram('getChatMember', { chat_id: project.behavior.subscriptionChat, user_id: message.chat.id }); }
+            catch (error) { console.warn('Не удалось проверить подписку:', error.message); }
+            if (!member || !['creator', 'administrator', 'member'].includes(member.status) && !(member.status === 'restricted' && member.is_member)) {
+              if (!callback) await telegram('sendMessage', { chat_id: message.chat.id, text: project.behavior.subscriptionMessage || 'Подпишитесь на канал и повторите попытку.' });
+              return;
+            }
+          }
           await deliver(session, session.engine.handle(event));
           if (!callback && session.engine.behavior.deleteUser) { try { await telegram('deleteMessage', { chat_id: message.chat.id, message_id: message.message_id }); } catch { console.warn('Нет возможности удалить сообщение пользователя'); } }
         }, !!callback);
