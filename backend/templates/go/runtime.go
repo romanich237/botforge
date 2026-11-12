@@ -19,6 +19,8 @@ type Button struct {
 type NodeData struct {
 	Text        string   `json:"text"`
 	Command     string   `json:"command"`
+	TriggerText string `json:"triggerText"`
+	TriggerMode string `json:"triggerMode"`
 	Description string   `json:"description"`
 	Variable    string   `json:"variable"`
 	Validation  string   `json:"validation"`
@@ -388,7 +390,13 @@ func (s *Session) Handle(event map[string]any, now int64) []Event {
 				}
 				return events
 			}
-			keyboard := false
+			for _, n := range s.Project.Nodes {
+				if n.Type != "command" || strings.TrimSpace(n.Data.TriggerText) == "" { continue }
+				phrase, candidate := strings.TrimSpace(n.Data.TriggerText), text
+				if s.flag("ignoreCase", false) { phrase, candidate = strings.ToLower(phrase), strings.ToLower(candidate) }
+				if candidate == phrase || (n.Data.TriggerMode == "contains" && strings.Contains(candidate, phrase)) { target = n.ID; break }
+			}
+			keyboard := target != ""
 			for i := len(s.MenuOrder) - 1; i >= 0 && !keyboard; i-- {
 				m := s.Menus[s.MenuOrder[i]]
 				if m.Placement == "keyboard" {
