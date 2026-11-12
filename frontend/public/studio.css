@@ -370,3 +370,8 @@ body:not(.is-welcome) .language-picker-control select {
 .device-reduced-motion *, .device-reduced-motion *::before, .device-reduced-motion *::after { scroll-behavior:auto!important; animation-duration:0.01ms!important; transition-duration:0.01ms!important; }
 @media (max-width: 900px) { .ai-modes, .dialog-actions { flex-wrap:wrap; } #ai-dialog { max-width:min(94vw,720px); max-height:90dvh; overflow:auto; } }
 @media (max-width: 650px) { #ai-dialog { width:calc(100vw - 20px); max-width:none; max-height:calc(100dvh - 20px); margin:auto; padding:16px; } .board-dock { max-width:calc(100vw - 20px); } }
+
+/* Context actions on the visual editor */
+.bf-context-menu { position:fixed; z-index:10000; width:190px; padding:6px; background:var(--surface,#fff); border:1px solid #d9dbe2; border-radius:12px; box-shadow:0 12px 32px #14182424; display:grid; gap:2px; }
+.bf-context-menu button { border:0; background:transparent; color:inherit; text-align:left; padding:10px 12px; border-radius:7px; cursor:pointer; }
+.bf-context-menu button:hover,.bf-context-menu button:focus-visible { background:#eef1f8; }
