@@ -201,6 +201,28 @@ function addNode(type, position) {
   if (!Object.hasOwn(blockNames, type) || (type === 'start' && draft.nodes.some(n => n.type === 'start'))) return;
   const id = crypto.randomUUID(); draft.nodes.push({ id, type, x: position?.x ?? draft.nodes.length % 3 * 320, y: position?.y ?? Math.floor(draft.nodes.length / 3) * 240, data: { text: '', command: '', variable: '', validation: 'text', error: 'Проверьте введённое значение', operation: 'eq', value: '', placement: 'inline', buttons: [] } }); selectedNode = id; changed(); openWorkspace('builder', 'properties');
 }
+function copySelectedBlocks() {
+  const ids = selectedNodeIds.size ? [...selectedNodeIds] : selectedNode ? [selectedNode] : [];
+  const count = window.BotForgeClipboard.copy(draft, ids);
+  if (!count) return notify('Выделите блоки для копирования. Блок «Старт» не копируется.');
+  notify(count === 1 ? 'Блок скопирован' : 'Скопировано блоков: ' + count);
+  return true;
+}
+function pasteCopiedBlocks() {
+  const result = window.BotForgeClipboard.paste(draft);
+  if (!result) return notify('Сначала скопируйте блоки.');
+  if (result.error) return notify(result.error);
+  selectedNodeIds = new Set(result.ids); selectedEdgeIds = new Set(result.edges);
+  selectedNode = result.ids.length === 1 ? result.ids[0] : null;
+  focusNode = selectedNode;
+  changed(); render();
+  notify(result.ids.length === 1 ? 'Блок вставлен' : 'Вставлено блоков: ' + result.ids.length);
+}
+function cutSelectedBlocks() {
+  const ids = selectedNodeIds.size ? [...selectedNodeIds] : selectedNode ? [selectedNode] : [];
+  if (!window.BotForgeClipboard.copy(draft, ids)) return notify('Выделите блоки для вырезания.');
+  deleteSelection({ nodeIds: ids.filter(id => draft.nodes.some(n => n.id === id && n.type !== 'start')), edgeIds: [] });
+}
 function deleteSelection({ confirmFirst = false, nodeIds, edgeIds } = {}) {
   const nodesToDelete = new Set(nodeIds || (selectedNodeIds.size > 1 && !selectedNode ? selectedNodeIds : selectedNode ? [selectedNode] : selectedNodeIds));
   const edgesToDelete = new Set(edgeIds || selectedEdgeIds);
@@ -290,7 +312,7 @@ function renderWorkspacePanel(page, target) {
 }
 function renderBuilder(page = 'builder') {
   const h = heading('Сценарий бота', 'Telegram · Добавьте блоки, соедините и сохраните');
-  const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), button('⌫ Удалить', () => { if (!deleteSelection()) notify('Сначала выделите блок или линию.'); }, 'delete-selection-button'), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { openWorkspace('testing', 'test'); }), button('↓ Полный ZIP', downloadProjectBundle), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions); for (const b of actions.children) { if (b.textContent === 'Сохранить') b.dataset.tour = 'save'; if (b.textContent.includes('Предпросмотр')) b.dataset.tour = 'preview'; }
+  const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), button('Копировать', copySelectedBlocks), button('Вставить', pasteCopiedBlocks), button('⌫ Удалить', () => { if (!deleteSelection()) notify('Сначала выделите блок или линию.'); }, 'delete-selection-button'), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { openWorkspace('testing', 'test'); }), button('↓ Полный ZIP', downloadProjectBundle), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions); for (const b of actions.children) { if (b.textContent === 'Сохранить') b.dataset.tour = 'save'; if (b.textContent.includes('Предпросмотр')) b.dataset.tour = 'preview'; }
   renderBlockSearch();
   const mobileTabs = element('div', 'editor-tabs'); mobileTabs.setAttribute('role', 'group'); mobileTabs.setAttribute('aria-label', 'Панели конструктора');
   for (const [id, text, iconName] of [['blocks', 'Блоки', 'plus'], ['canvas', 'Схема', 'workflow'], ['properties', 'Свойства', 'sliders-horizontal'], ['test', 'Тест', 'play']]) {
@@ -318,7 +340,7 @@ function renderBuilder(page = 'builder') {
   const center = element('div', 'editor-center'); const toolbar = element('div', 'canvas-bar'); toolbar.append(element('span', '', '◉ Сценарий'), element('span', 'muted', draft.nodes.length + ' блоков · ' + draft.edges.length + ' связей')); center.append(toolbar);
   if (aiAppliedSummary?.projectId === draft.id) { const note = element('aside','ai-build-note'); note.setAttribute('role','status'); note.append(element('strong','','✦ ИИ подготовил сценарий'),element('p','',aiAppliedSummary.text),element('p','tour-success',aiAppliedSummary.status || ''),button('Понятно',()=>{aiAppliedSummary=null;render();},'text-button')); center.append(note); }
   const dock = element('div', 'board-dock'); dock.setAttribute('role', 'toolbar'); dock.setAttribute('aria-label', 'Инструменты доски');
-  dock.append(button('↖ Выбрать', () => { selectedNode = null; openWorkspace('builder'); }), button('＋ Текст', () => addNode('text')), button('⤢ Расставить', arrangeScenario), button('✦ ИИ', openAssistant, 'ai-trigger'), button('▷ Чат', () => { openWorkspace('testing', 'test'); })); center.append(dock);
+  dock.append(button('Копировать', copySelectedBlocks), button('Вставить', pasteCopiedBlocks), button('↖ Выбрать', () => { selectedNode = null; openWorkspace('builder'); }), button('＋ Текст', () => addNode('text')), button('⤢ Расставить', arrangeScenario), button('✦ ИИ', openAssistant, 'ai-trigger'), button('▷ Чат', () => { openWorkspace('testing', 'test'); })); center.append(dock);
   const canvas = element('div', 'flow-canvas'); canvas.setAttribute('aria-label', 'Схема сценария'); center.append(canvas);
   if (!draft.nodes.length) { const empty = element('div', 'canvas-welcome'); empty.append(element('div', 'welcome-icon', '⌘'), element('h2', '', 'Соберите свой первый сценарий'), element('p', '', 'Начните со старта — это вход в диалог по команде /start.'), button('+ Добавить старт', () => addNode('start'), 'primary'), button('Посмотреть обучение', openGuide, 'text-button')); center.append(empty); }
   const footer = element('div', 'canvas-footer'); footer.append(element('span', '', 'Выделение рамкой · Shift — добавить · Delete / ⌫ — удалить · Перетаскивайте схему двумя пальцами или колесом')); center.append(footer);
@@ -484,6 +506,18 @@ document.querySelector('#create-form').onsubmit = async event => {
   const submit = event.submitter; submit.disabled = true;
   try { const p = await api('', 'POST', { name }); projects.unshift(p); dialog.close(); render(); notify('Проект создан на сервере'); } catch (e) { notify(e.message); } finally { submit.disabled = false; }
 };
+document.addEventListener('keydown', event => {
+  if (!draft || location.hash !== '#builder' || event.repeat || event.altKey || document.querySelector('dialog[open]')) return;
+  const target = event.target;
+  if (target?.closest?.('input, textarea, select, [contenteditable="true"]') || target?.isContentEditable) return;
+  if (!(event.ctrlKey || event.metaKey) || event.shiftKey) return;
+  const key = event.key.toLowerCase();
+  if (!['c', 'v', 'x'].includes(key)) return;
+  event.preventDefault();
+  if (key === 'c') copySelectedBlocks();
+  else if (key === 'v') pasteCopiedBlocks();
+  else cutSelectedBlocks();
+});
 document.addEventListener('keydown', event => {
   if (!['Delete', 'Backspace'].includes(event.key) || event.repeat || !draft || location.hash !== '#builder' || event.metaKey || event.ctrlKey || event.altKey) return;
   const target = event.target;
