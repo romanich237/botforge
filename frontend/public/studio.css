@@ -362,3 +362,11 @@ body:not(.is-welcome) .language-picker-control select {
   box-shadow: none;
   background-color: #fff;
 }
+
+/* Device-specific enhancements */
+.device-touch .board-dock button, .device-touch .canvas-bar button, .device-touch .remove-edge { min-width:44px; min-height:44px; }
+.device-touch .board-dock { overflow-x:auto; max-width:100%; -webkit-overflow-scrolling:touch; }
+.device-touch .board-dock button { flex-shrink:0; }
+.device-reduced-motion *, .device-reduced-motion *::before, .device-reduced-motion *::after { scroll-behavior:auto!important; animation-duration:0.01ms!important; transition-duration:0.01ms!important; }
+@media (max-width: 900px) { .ai-modes, .dialog-actions { flex-wrap:wrap; } #ai-dialog { max-width:min(94vw,720px); max-height:90dvh; overflow:auto; } }
+@media (max-width: 650px) { #ai-dialog { width:calc(100vw - 20px); max-width:none; max-height:calc(100dvh - 20px); margin:auto; padding:16px; } .board-dock { max-width:calc(100vw - 20px); } }
