@@ -12,6 +12,7 @@ let projects = [], selectedId = sessionStorage.getItem('botforge.selected'), dra
 let selectedNodeIds = new Set(), selectedEdgeIds = new Set();
 let autosaveTimer = null, autosaveQueued = false;
 let validationResult = null;
+const editHistory = window.BotForgeHistory.createHistory();
 function element(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
 function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.classList.add('ui-icon'); svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '1.8'); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
@@ -35,12 +36,13 @@ function scheduleAutosave() {
   autosaveTimer = setTimeout(() => { autosaveTimer = null; saveProject({ quiet: true }); }, 700);
 }
 function changed() {
+  editHistory.record(draft);
   window.BotForgeTour?.update(); dirty = true; status('Сохранение…'); scheduleAutosave();
   refreshChecklist(); if (document.querySelector('#chat-mount')) paintChat();
 }
 function leave() { if (busy) { notify('Дождитесь завершения сохранения'); return false; } return !dirty || confirm('Есть несохранённые изменения. Покинуть проект?'); }
 async function reload() { loading = true; loadError = ''; render(); try { projects = await api(''); } catch (e) { loadError = e.message; } loading = false; render(); }
-async function openProject(id) { if (!leave()) return; clearTimeout(autosaveTimer); autosaveTimer = null; const project = await api('/' + id); draft = project; blockSearch = ''; focusNode = null; editorTab = 'canvas'; canvasViewport = null; selectedId = id; selectedNode = null; selectedNodeIds.clear(); selectedEdgeIds.clear(); dirty = false; sessionStorage.setItem('botforge.selected', id); location.hash = 'builder'; render(); }
+async function openProject(id) { if (!leave()) return; clearTimeout(autosaveTimer); autosaveTimer = null; const project = await api('/' + id); draft = project; editHistory.reset(draft); blockSearch = ''; focusNode = null; editorTab = 'canvas'; canvasViewport = null; selectedId = id; selectedNode = null; selectedNodeIds.clear(); selectedEdgeIds.clear(); dirty = false; sessionStorage.setItem('botforge.selected', id); location.hash = 'builder'; render(); }
 async function saveProject({ quiet = false } = {}) {
   clearTimeout(autosaveTimer); autosaveTimer = null;
   if (!draft) return false;
@@ -201,6 +203,20 @@ function addNode(type, position) {
   if (!Object.hasOwn(blockNames, type) || (type === 'start' && draft.nodes.some(n => n.type === 'start'))) return;
   const id = crypto.randomUUID(); draft.nodes.push({ id, type, x: position?.x ?? draft.nodes.length % 3 * 320, y: position?.y ?? Math.floor(draft.nodes.length / 3) * 240, data: { text: '', command: '', variable: '', validation: 'text', error: 'Проверьте введённое значение', operation: 'eq', value: '', placement: 'inline', buttons: [] } }); selectedNode = id; changed(); openWorkspace('builder', 'properties');
 }
+function undoEditor() { if (!editHistory.undo(draft)) return notify('Нечего отменять.'); selectedNode = null; selectedNodeIds.clear(); selectedEdgeIds.clear(); changedWithoutHistory(); render(); }
+function redoEditor() { if (!editHistory.redo(draft)) return notify('Нечего повторять.'); selectedNode = null; selectedNodeIds.clear(); selectedEdgeIds.clear(); changedWithoutHistory(); render(); }
+function changedWithoutHistory() { dirty = true; status('Сохранение…'); scheduleAutosave(); refreshChecklist(); if (document.querySelector('#chat-mount')) paintChat(); }
+function showNodeMenu(id, x, y) {
+  document.querySelector('#bf-context-menu')?.remove();
+  const menu = element('div', 'bf-context-menu'); menu.id = 'bf-context-menu'; menu.setAttribute('role','menu');
+  menu.style.left = Math.max(8, Math.min(x, window.innerWidth - 200)) + 'px'; menu.style.top = Math.max(8, Math.min(y, window.innerHeight - 250)) + 'px';
+  const run = fn => () => { menu.remove(); fn(); };
+  menu.append(button('Свойства', run(() => { selectedNode = id; selectedNodeIds = new Set([id]); openWorkspace('builder', 'properties'); })), button('Копировать', run(() => { selectedNode = id; selectedNodeIds = new Set([id]); copySelectedBlocks(); })), button('Дублировать', run(() => { selectedNode = id; selectedNodeIds = new Set([id]); copySelectedBlocks(); pasteCopiedBlocks(); })), button('Удалить', run(() => deleteNode(id, { confirmFirst: true }))));
+  document.body.append(menu); menu.querySelector('button')?.focus();
+  const close = event => { if (!menu.contains(event.target)) { menu.remove(); document.removeEventListener('pointerdown', close); } };
+  setTimeout(() => document.addEventListener('pointerdown', close), 0);
+  menu.addEventListener('keydown', e => { if (e.key === 'Escape') { menu.remove(); } });
+}
 function copySelectedBlocks() {
   const ids = selectedNodeIds.size ? [...selectedNodeIds] : selectedNode ? [selectedNode] : [];
   const count = window.BotForgeClipboard.copy(draft, ids);
@@ -312,7 +328,7 @@ function renderWorkspacePanel(page, target) {
 }
 function renderBuilder(page = 'builder') {
   const h = heading('Сценарий бота', 'Telegram · Добавьте блоки, соедините и сохраните');
-  const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), button('Копировать', copySelectedBlocks), button('Вставить', pasteCopiedBlocks), button('⌫ Удалить', () => { if (!deleteSelection()) notify('Сначала выделите блок или линию.'); }, 'delete-selection-button'), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { openWorkspace('testing', 'test'); }), button('↓ Полный ZIP', downloadProjectBundle), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions); for (const b of actions.children) { if (b.textContent === 'Сохранить') b.dataset.tour = 'save'; if (b.textContent.includes('Предпросмотр')) b.dataset.tour = 'preview'; }
+  const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), button('↶ Отменить', undoEditor), button('Повторить', redoEditor), button('Копировать', copySelectedBlocks), button('Вставить', pasteCopiedBlocks), button('⌫ Удалить', () => { if (!deleteSelection()) notify('Сначала выделите блок или линию.'); }, 'delete-selection-button'), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { openWorkspace('testing', 'test'); }), button('↓ Полный ZIP', downloadProjectBundle), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions); for (const b of actions.children) { if (b.textContent === 'Сохранить') b.dataset.tour = 'save'; if (b.textContent.includes('Предпросмотр')) b.dataset.tour = 'preview'; }
   renderBlockSearch();
   const mobileTabs = element('div', 'editor-tabs'); mobileTabs.setAttribute('role', 'group'); mobileTabs.setAttribute('aria-label', 'Панели конструктора');
   for (const [id, text, iconName] of [['blocks', 'Блоки', 'plus'], ['canvas', 'Схема', 'workflow'], ['properties', 'Свойства', 'sliders-horizontal'], ['test', 'Тест', 'play']]) {
@@ -375,6 +391,7 @@ function renderBuilder(page = 'builder') {
       selectedNode = nodeIds.length === 1 ? nodeIds[0] : null;
     },
     focus: focusNode,
+    contextNode: (id, x, y) => showNodeMenu(id, x, y),
     reconnect: (edge, connection) => {
       if (!window.BotForgeEditor.reconnect(draft, edge.id, connection)) return notify('Этот выход уже занят или соединение недопустимо. Связь сохранена.');
       changed(); render();
@@ -395,6 +412,7 @@ function renderBuilder(page = 'builder') {
 function renderProperties(n, target = main) {
   const panel = element('section', 'properties'); panel.append(element('h2', '', 'Свойства · ' + blockNames[n.type]), element('p', 'property-tip', blockTips[n.type])); const d = n.data;
   if (['text', 'buttons', 'input'].includes(n.type)) { const input = field(panel, 'Текст сообщения', d.text, v => { d.text = v; }); input.dataset.tour = 'message'; }
+  field(panel, 'Заметка к блоку', d.note || '', v => { d.note = v; });
   if (n.type === 'command') { field(panel, 'Команда', d.command, v => { d.command = v; }); field(panel, 'Описание для /help', d.description, v => { d.description = v; }); }
   if (['input', 'condition'].includes(n.type)) field(panel, 'Переменная', d.variable, v => { d.variable = v; }, [['', 'Выберите переменную'], ...draft.variables.map(v => [v.name, v.name])]);
   if (n.type === 'input') { field(panel, 'Проверка ввода', d.validation, v => { d.validation = v; }, [['text', 'Текст'], ['number', 'Число'], ['email', 'Email'], ['choice', 'Вариант из списка']]); field(panel, 'Варианты через запятую', d.choices, v => { d.choices = v; }); field(panel, 'Текст ошибки', d.error, v => { d.error = v; }); }
@@ -510,9 +528,10 @@ document.addEventListener('keydown', event => {
   if (!draft || location.hash !== '#builder' || event.repeat || event.altKey || document.querySelector('dialog[open]')) return;
   const target = event.target;
   if (target?.closest?.('input, textarea, select, [contenteditable="true"]') || target?.isContentEditable) return;
-  if (!(event.ctrlKey || event.metaKey) || event.shiftKey) return;
+  if (!(event.ctrlKey || event.metaKey)) return;
   const key = event.key.toLowerCase();
-  if (!['c', 'v', 'x'].includes(key)) return;
+  if (key === 'z' || (key === 'y' && !event.metaKey)) { event.preventDefault(); if (event.shiftKey || key === 'y') redoEditor(); else undoEditor(); return; }
+  if (event.shiftKey || !['c', 'v', 'x'].includes(key)) return;
   event.preventDefault();
   if (key === 'c') copySelectedBlocks();
   else if (key === 'v') pasteCopiedBlocks();
@@ -529,4 +548,4 @@ document.addEventListener('keydown', event => {
 window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('hashchange', render);
 window.matchMedia('(max-width: 650px)').addEventListener('change', () => { canvasViewport = null; render(); });
-(async () => { try { const r = await fetch('/auth/status'); if (!r.ok) throw Error('Не удалось проверить вход'); account = await r.json(); const b = button(account.enabled ? (account.user ? account.user.name + ' · Выйти' : 'Войти с Google') : 'Google · скоро', async () => { if (!account.enabled) return notify('Google-вход подготовлен. Осталось добавить данные приложения Google Cloud на сервер.'); if (account.user) { if (!leave()) return; const r = await fetch('/auth/logout', {method:'POST'}); if (!r.ok) throw Error('Не удалось выйти'); location.reload(); } else location.href = '/auth/google'; }, 'account-button'); document.querySelector('.topbar').append(b); } catch(e) { accountError = e.message; loading = false; render(); return; } if (account.enabled && !account.user) { loading = false; render(); return; } await reload(); if (selectedId && projects.some(p => p.id === selectedId)) { try { draft = await api('/' + selectedId); render(); } catch (e) { notify(e.message); } } })();
+(async () => { try { const r = await fetch('/auth/status'); if (!r.ok) throw Error('Не удалось проверить вход'); account = await r.json(); const b = button(account.enabled ? (account.user ? account.user.name + ' · Выйти' : 'Войти с Google') : 'Google · скоро', async () => { if (!account.enabled) return notify('Google-вход подготовлен. Осталось добавить данные приложения Google Cloud на сервер.'); if (account.user) { if (!leave()) return; const r = await fetch('/auth/logout', {method:'POST'}); if (!r.ok) throw Error('Не удалось выйти'); location.reload(); } else location.href = '/auth/google'; }, 'account-button'); document.querySelector('.topbar').append(b); } catch(e) { accountError = e.message; loading = false; render(); return; } if (account.enabled && !account.user) { loading = false; render(); return; } await reload(); if (selectedId && projects.some(p => p.id === selectedId)) { try { draft = await api('/' + selectedId); editHistory.reset(draft); render(); } catch (e) { notify(e.message); } } })();
