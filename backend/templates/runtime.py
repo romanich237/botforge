@@ -45,7 +45,7 @@ class Session:
         placement = node['data'].get('placement', 'inline') if node else 'inline'
         if buttons:
             self.menus[token] = dict(nodeId=node['id'], buttons=buttons, placement=placement)
-        return dict(type='message', text=self.text(text), buttons=buttons, token=token, placement=placement)
+        return dict(type='message', text=self.text(text), buttons=buttons, token=token, placement=placement, columns=node['data'].get('columns', 1) if node else 1, oneTime=node['data'].get('oneTime', False) if node else False)
 
     def run(self, node_id, now):
         events = []
