@@ -16,6 +16,7 @@ function checkShape(p) {
   for (const n of p.nodes) {
     if (!n || typeof n.id !== 'string' || !n.id || ids.has(n.id) || !types.includes(n.type) || !n.data || typeof n.data !== 'object' || Array.isArray(n.data) || !Number.isFinite(n.x) || !Number.isFinite(n.y)) return 'Некорректный блок или повтор ID';
     if (n.type === 'buttons' && (!Array.isArray(n.data.buttons) || n.data.buttons.some(b => !b || typeof b.id !== 'string' || typeof b.label !== 'string' || !['url', 'transition'].includes(b.action)) || new Set(n.data.buttons.map(b => b.id)).size !== n.data.buttons.length)) return 'Некорректный список кнопок';
+    if (n.type === 'buttons' && (n.data.columns !== undefined && (!Number.isInteger(n.data.columns) || n.data.columns < 1 || n.data.columns > 4) || n.data.oneTime !== undefined && typeof n.data.oneTime !== 'boolean')) return 'Неверные настройки клавиатуры';
     if (n.data.note?.length > 2000) return 'Заметка не должна превышать 2000 символов';
     if (n.type === 'command' && n.data.triggerText?.length > 200) return 'Триггер слишком длинный';
     if (n.type === 'input' && n.data.choices !== undefined && typeof n.data.choices !== 'string') return 'Некорректные варианты ввода';
