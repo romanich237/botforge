@@ -154,6 +154,18 @@ def main():
                 session = sessions[key]
                 event = dict(callback=callback.get('data', '')) if callback else dict(text=message.get('text', ''))
                 def process(s=session, e=event, m=message, cb=callback):
+                    channel = PROJECT.get('behavior', {}).get('subscriptionChat')
+                    if channel:
+                        try:
+                            member = telegram('getChatMember', dict(chat_id=channel, user_id=m['chat']['id']))
+                            allowed = member.get('status') in ('creator', 'administrator', 'member') or (member.get('status') == 'restricted' and member.get('is_member'))
+                        except RuntimeError as exc:
+                            print('Не удалось проверить подписку:', exc)
+                            allowed = False
+                        if not allowed:
+                            if not cb:
+                                telegram('sendMessage', dict(chat_id=m['chat']['id'], text=PROJECT.get('behavior', {}).get('subscriptionMessage') or 'Подпишитесь на канал и повторите попытку.'))
+                            return
                     deliver(s, s['engine'].handle(e))
                     if not cb and s['engine'].behavior.get('deleteUser'):
                         try:
