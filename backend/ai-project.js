@@ -1,5 +1,5 @@
 const { isDeepStrictEqual } = require('node:util');
-const { arrange } = require('./public/layout');
+const { arrange } = require('../frontend/public/layout');
 const fail = message => { throw Object.assign(Error(message), { status: 502 }); };
 function removals(values, existing, label) {
   if (values === undefined) return new Set();

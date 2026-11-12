@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check project.js && node --check public/app.js && node --check public/guide.js && node --check public/runtime.js && node --check public/preview.js && node --check exporter.js && node --check templates/bot.js && node --check public/languages.js && node --check assistant.js && node --check public/layout.js && node --check public/ai.js && node --check storage.js && node --check public/editor.js && node --check ai-project.js && node --check auth.js && node --check public/tour.js",
+    "check": "node --check server.js && node --check backend/server.js && node --check backend/project.js && node --check frontend/public/app.js && node --check frontend/public/guide.js && node --check frontend/public/runtime.js && node --check frontend/public/preview.js && node --check backend/exporter.js && node --check backend/templates/bot.js && node --check frontend/public/languages.js && node --check backend/assistant.js && node --check frontend/public/layout.js && node --check frontend/public/ai.js && node --check backend/storage.js && node --check frontend/public/editor.js && node --check backend/ai-project.js && node --check backend/auth.js && node --check frontend/public/tour.js",
     "test": "node --test",
-    "build": "esbuild src/canvas.jsx --bundle --minify --outfile=public/canvas.js",
+    "build": "esbuild frontend/src/canvas.jsx --bundle --minify --outfile=frontend/public/canvas.js",
     "prestart": "npm run build"
   },
   "engines": {

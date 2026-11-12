@@ -2,7 +2,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { zipSync, strToU8 } = require('fflate');
 const { checkShape, validate } = require('./project');
-const languages = require('./public/languages');
+const languages = require('../frontend/public/languages');
 async function generate(project, language) {
   if (language !== 'all' && !Object.hasOwn(languages, language)) throw Object.assign(Error('Выберите Python, JavaScript, TypeScript или Go'), { status: 400 });
   const shape = checkShape(project);
@@ -21,12 +21,12 @@ async function generate(project, language) {
   if (language === 'go') {
     files = await Promise.all(['main.go', 'runtime.go', 'go.mod'].map(name => read(name, 'templates/go/' + name)));
   } else if (language === 'typescript') {
-    files = await Promise.all([read('bot.ts', 'templates/bot.ts'), read('runtime.js', 'public/runtime.js'), read('runtime.d.ts', 'templates/runtime.d.ts')]);
-    files.push({ name: 'package.json', content: JSON.stringify({ name: 'botforge-bot', version: '1.0.0', private: true, type: 'commonjs', engines: { node: '>=20' }, scripts: { build: 'tsc', start: 'node dist/bot.js' }, devDependencies: { typescript: require('./package-lock.json').packages['node_modules/typescript'].version, '@types/node': require('./package-lock.json').packages['node_modules/@types/node'].version } }, null, 2) + '\n' });
+    files = await Promise.all([read('bot.ts', 'templates/bot.ts'), read('runtime.js', '../frontend/public/runtime.js'), read('runtime.d.ts', 'templates/runtime.d.ts')]);
+    files.push({ name: 'package.json', content: JSON.stringify({ name: 'botforge-bot', version: '1.0.0', private: true, type: 'commonjs', engines: { node: '>=20' }, scripts: { build: 'tsc', start: 'node dist/bot.js' }, devDependencies: { typescript: require('../package-lock.json').packages['node_modules/typescript'].version, '@types/node': require('../package-lock.json').packages['node_modules/@types/node'].version } }, null, 2) + '\n' });
     files.push({ name: 'tsconfig.json', content: JSON.stringify({ compilerOptions: { target: 'ES2022', module: 'Node16', moduleResolution: 'Node16', outDir: 'dist', rootDir: '.', strict: true, allowJs: true, checkJs: false, skipLibCheck: true, types: ['node'] }, include: ['bot.ts', 'runtime.js'] }, null, 2) + '\n' });
   } else {
     const python = language === 'python';
-    files = await Promise.all([read(python ? 'bot.py' : 'bot.js', python ? 'templates/bot.py' : 'templates/bot.js'), read(python ? 'runtime.py' : 'runtime.js', python ? 'templates/runtime.py' : 'public/runtime.js')]);
+    files = await Promise.all([read(python ? 'bot.py' : 'bot.js', python ? 'templates/bot.py' : 'templates/bot.js'), read(python ? 'runtime.py' : 'runtime.js', python ? 'templates/runtime.py' : '../frontend/public/runtime.js')]);
   }
   files.push(
     { name: 'project.json', content: JSON.stringify(project, null, 2) + '\n' },

@@ -14,5 +14,5 @@ data/
 __pycache__/
 *.pyc
 /test/
-public/canvas.js
-public/canvas.css
+frontend/public/canvas.js
+frontend/public/canvas.css

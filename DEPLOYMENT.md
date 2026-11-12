@@ -1,48 +1,18 @@
-# Production deployment
+# Развёртывание BotForge
 
-Pushes to `main` run checks and deploy BotForge to Ubuntu over SSH.
+На VPS BotForge запускается от пользователя `botforge` через пользовательскую службу systemd. Nginx принимает запросы по HTTPS и передаёт их на `127.0.0.1:3000`.
 
-## GitHub Actions secrets
+| Компонент | Назначение |
+| --- | --- |
+| `botforge.service` | Запускает `node server.js` из `~/botforge` |
+| `botforge-update.service` | Запускает `/bin/bash deploy/update.sh` из `~/botforge` с Node.js и npm в PATH |
+| `botforge-update.timer` | Проверяет GitHub каждые две минуты |
+| Nginx и Certbot | Проксируют трафик и обслуживают HTTPS |
 
-Configure these repository secrets:
+Службы пользователя находятся в `~/.config/systemd/user/`. Чтобы они запускались после перезагрузки VPS, администратор включает `loginctl enable-linger botforge`.
 
-- `SSH_HOST`: server hostname or IP address.
-- `SSH_USER`: unprivileged deployment user.
-- `SSH_PRIVATE_KEY`: private half of a dedicated deployment SSH key.
-- `SSH_KNOWN_HOSTS`: trusted host-key line produced by `ssh-keyscan -H SERVER` and
-  verified against the server's own SSH host-key fingerprint.
-- `SSH_PORT`: optional; defaults to `22`.
-- `DEPLOY_PATH`: optional; defaults to `/root/botforge`.
+Для ручного обновления следуйте [инструкции в README](README.md#ручное-обновление-с-github). Чтобы оставить только ручное обновление, отключите таймер командой `systemctl --user disable --now botforge-update.timer`.
 
-Do not put application secrets in GitHub. Production values live only on the
-server in `/root/botforge/shared/.env`. The first deployment creates that file
-from `.env.example`; edit it on the server and rerun the workflow.
+Переменные окружения приведены в [примере конфигурации](.env.example). Для systemd их можно задать через `Environment=` или подключить отдельный файл через `EnvironmentFile=` в `botforge.service`. Для публичного сайта задайте `PUBLIC_ORIGIN=https://botforge-studio.duckdns.org`. Для Google-входа укажите обе переменные `GOOGLE_CLIENT_ID` и `GOOGLE_CLIENT_SECRET`.
 
-## One-time Ubuntu preparation
-
-Install Node.js 24 and give the deployment user ownership of the target:
-
-```sh
-mkdir -p /root/botforge
-node --version
-npm --version
-```
-
-The workflow installs PM2 if it is missing. If global npm installation needs
-administrator rights, allow the deployment user to run only the required npm
-installation without a password, or install PM2 once yourself:
-
-```sh
-sudo npm install --global pm2
-```
-
-After the first successful deployment, enable restart after reboot:
-
-```sh
-pm2 startup
-# Run the exact command printed by PM2, then:
-pm2 save
-```
-
-The web process listens on `127.0.0.1:3000`; expose it through Nginx or another
-reverse proxy. Keep `/root/botforge/shared` in server backups.
+Храните токены и параметры приложения на сервере. В резервную копию включайте каталог данных `~/botforge/data` или путь из `DATA_DIR`, если он задан.
