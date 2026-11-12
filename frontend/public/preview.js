@@ -79,7 +79,11 @@ function renderExport(target = main) {
   const h = heading('Экспорт бота', 'Скачайте исходники и запустите своего Telegram-бота локально.', target);
   h.append(element('span', 'platform-tag', '↗ Telegram · 4 языка экспорта'));
   const layout = element('section', 'export-layout'); const settings = element('aside', 'export-settings'); settings.append(element('h2', '', 'Настройки экспорта'));
-  const wrap = element('label', 'field'); wrap.append(element('span', '', 'Язык программирования')); const select = element('select'); for (const [v, t] of Object.entries(window.BotForgeLanguages).map(([id, spec]) => [id, spec.name + ' · ' + spec.runtime])) { const o = element('option', '', t); o.value = v; select.append(o); } select.value = exportLanguage; select.disabled = exportBusy; select.onchange = () => { exportLanguage = select.value; exportResult = null; render(); }; wrap.append(select); settings.append(wrap);
+  const wrap = element('label', 'field language-picker'); wrap.append(element('span', '', 'Язык программирования'));
+  const control = element('div', 'language-picker-control'); const languageMark = element('span', 'language-icon'); languageMark.append(icon('lang-' + exportLanguage));
+  const select = element('select'); for (const [v, t] of Object.entries(window.BotForgeLanguages).map(([id, spec]) => [id, spec.name + ' · ' + spec.runtime])) { const o = element('option', '', t); o.value = v; select.append(o); }
+  select.value = exportLanguage; select.disabled = exportBusy; select.onchange = () => { exportLanguage = select.value; exportResult = null; render(); };
+  control.append(languageMark, select); wrap.append(control); settings.append(wrap);
   const generate = button(exportBusy ? 'Проверяем и генерируем…' : 'Проверить и подготовить код', prepareExport, 'primary'); generate.disabled = exportBusy; settings.append(button('↓ Скачать полный проект · все языки', downloadProjectBundle), generate, element('p', 'muted', 'Экспортируется текущая схема, включая несохранённые изменения. Токен добавляется только в локальный .env.'));
   const code = element('div', 'export-code');
   if (exportResult && exportResult.signature !== scenarioSignature()) exportResult = null;

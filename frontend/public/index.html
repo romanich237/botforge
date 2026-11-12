@@ -26,23 +26,146 @@
   <script defer src="/app.js"></script>
 </head>
 <body>
+  <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><symbol id="folder" viewBox="0 0 24 24">
+  <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+</symbol><symbol id="workflow" viewBox="0 0 24 24">
+  <rect width="8" height="8" x="3" y="3" rx="2" />
+  <path d="M7 11v4a2 2 0 0 0 2 2h4" />
+  <rect width="8" height="8" x="13" y="13" rx="2" />
+</symbol><symbol id="sliders-horizontal" viewBox="0 0 24 24">
+  <path d="M10 5H3" />
+  <path d="M12 19H3" />
+  <path d="M14 3v4" />
+  <path d="M16 17v4" />
+  <path d="M21 12h-9" />
+  <path d="M21 19h-5" />
+  <path d="M21 5h-7" />
+  <path d="M8 10v4" />
+  <path d="M8 12H3" />
+</symbol><symbol id="braces" viewBox="0 0 24 24">
+  <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1" />
+  <path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1" />
+</symbol><symbol id="play" viewBox="0 0 24 24">
+  <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" />
+</symbol><symbol id="download" viewBox="0 0 24 24">
+  <path d="M12 15V3" />
+  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+  <path d="m7 10 5 5 5-5" />
+</symbol><symbol id="settings" viewBox="0 0 24 24">
+  <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
+  <circle cx="12" cy="12" r="3" />
+</symbol><symbol id="circle-help" viewBox="0 0 24 24">
+  <circle cx="12" cy="12" r="10" />
+  <path d="M9 9.5a3 2.5 0 016 0c0 2-2 2-3 3.5" />
+  <path d="M12 17h.01" />
+</symbol><symbol id="sparkles" viewBox="0 0 24 24">
+  <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
+  <path d="M20 2v4" />
+  <path d="M22 4h-4" />
+  <circle cx="4" cy="20" r="2" />
+</symbol><symbol id="layout-grid" viewBox="0 0 24 24">
+  <rect width="7" height="7" x="3" y="3" rx="1" />
+  <rect width="7" height="7" x="14" y="3" rx="1" />
+  <rect width="7" height="7" x="14" y="14" rx="1" />
+  <rect width="7" height="7" x="3" y="14" rx="1" />
+</symbol><symbol id="mouse-pointer-2" viewBox="0 0 24 24">
+  <path d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z" />
+</symbol><symbol id="plus" viewBox="0 0 24 24">
+  <path d="M5 12h14" />
+  <path d="M12 5v14" />
+</symbol><symbol id="check" viewBox="0 0 24 24">
+  <path d="M20 6 9 17l-5-5" />
+</symbol><symbol id="x" viewBox="0 0 24 24">
+  <path d="M18 6 6 18" />
+  <path d="m6 6 12 12" />
+</symbol><symbol id="undo-2" viewBox="0 0 24 24">
+  <path d="M9 14 4 9l5-5" />
+  <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />
+</symbol><symbol id="message-square" viewBox="0 0 24 24">
+  <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" />
+</symbol><symbol id="text" viewBox="0 0 24 24">
+  <path d="M21 5H3" />
+  <path d="M15 12H3" />
+  <path d="M17 19H3" />
+</symbol><symbol id="list" viewBox="0 0 24 24">
+  <path d="M3 5h.01" />
+  <path d="M3 12h.01" />
+  <path d="M3 19h.01" />
+  <path d="M8 5h13" />
+  <path d="M8 12h13" />
+  <path d="M8 19h13" />
+</symbol><symbol id="text-cursor-input" viewBox="0 0 24 24">
+  <path d="M12 20h-1a2 2 0 0 1-2-2 2 2 0 0 1-2 2H6" />
+  <path d="M13 8h7a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-7" />
+  <path d="M5 16H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h1" />
+  <path d="M6 4h1a2 2 0 0 1 2 2 2 2 0 0 1 2-2h1" />
+  <path d="M9 6v12" />
+</symbol><symbol id="git-branch" viewBox="0 0 24 24">
+  <path d="M15 6a9 9 0 0 0-9 9V3" />
+  <circle cx="18" cy="6" r="3" />
+  <circle cx="6" cy="18" r="3" />
+</symbol><symbol id="square" viewBox="0 0 24 24">
+  <rect width="18" height="18" x="3" y="3" rx="2" />
+</symbol><symbol id="grip-vertical" viewBox="0 0 24 24">
+  <circle cx="9" cy="12" r="1" />
+  <circle cx="9" cy="5" r="1" />
+  <circle cx="9" cy="19" r="1" />
+  <circle cx="15" cy="12" r="1" />
+  <circle cx="15" cy="5" r="1" />
+  <circle cx="15" cy="19" r="1" />
+</symbol><symbol id="ellipsis" viewBox="0 0 24 24">
+  <circle cx="12" cy="12" r="1" />
+  <circle cx="19" cy="12" r="1" />
+  <circle cx="5" cy="12" r="1" />
+</symbol><symbol id="maximize" viewBox="0 0 24 24">
+  <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+  <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+  <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+  <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+</symbol><symbol id="arrow-up" viewBox="0 0 24 24">
+  <path d="m5 12 7-7 7 7" />
+  <path d="M12 19V5" />
+</symbol><symbol id="arrow-down" viewBox="0 0 24 24">
+  <path d="M12 5v14" />
+  <path d="m19 12-7 7-7-7" />
+</symbol><symbol id="rotate-ccw" viewBox="0 0 24 24">
+  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+  <path d="M3 3v5h5" />
+</symbol><symbol id="copy" viewBox="0 0 24 24">
+  <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+</symbol><symbol id="trash-2" viewBox="0 0 24 24">
+  <path d="M10 11v6" />
+  <path d="M14 11v6" />
+  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+  <path d="M3 6h18" />
+  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+</symbol><symbol id="search" viewBox="0 0 24 24">
+  <path d="m21 21-4.34-4.34" />
+  <circle cx="11" cy="11" r="8" />
+</symbol><symbol id="telegram" viewBox="0 0 24 24"><path d="m22 3-7 18-4-8-8-4 19-6Z"/><path d="m11 13 11-10"/></symbol>
+<symbol id="lang-python" viewBox="0 0 24 24"><path d="M12 3H7a4 4 0 0 0-4 4v4h9"/><path d="M12 21h5a4 4 0 0 0 4-4v-4h-9"/><circle cx="8" cy="6.5" r=".8" fill="currentColor" stroke="none"/><circle cx="16" cy="17.5" r=".8" fill="currentColor" stroke="none"/><path d="M8 11V8.5A2.5 2.5 0 0 1 10.5 6H13"/><path d="M16 13v2.5a2.5 2.5 0 0 1-2.5 2.5H11"/></symbol>
+<symbol id="lang-javascript" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M10 9v6c0 1.5-.8 2-2 2"/><path d="M17 10.5c-.5-.8-3-1-3 .6 0 2 3.5 1.2 3.5 3.7 0 2.2-3.5 2.8-5 .8"/></symbol>
+<symbol id="lang-typescript" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 9h6M10 9v8"/><path d="M18 10.5c-.5-.8-3-1-3 .6 0 2 3.5 1.2 3.5 3.7 0 2.2-3.5 2.8-5 .8"/></symbol>
+<symbol id="lang-go" viewBox="0 0 24 24"><path d="M3 8h6M2 12h7M4 16h5"/><path d="M10 7.5c1-1 2.4-1.5 4-1.5 3.9 0 7 2.7 7 6s-3.1 6-7 6c-2.2 0-4.2-.9-5.5-2.3"/><circle cx="15.5" cy="11" r=".8" fill="currentColor" stroke="none"/></symbol>
+</svg>
   <aside class="sidebar">
     <a href="#projects" class="brand"><img class="brand-logo" src="/logo.png" width="36" height="36" alt=""> BotForge</a>
     <nav aria-label="Основная навигация">
-      <a href="#projects" title="Проекты" aria-label="Проекты" data-page="projects"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/icons.svg#folder"></use></svg></span> Проекты</a>
-      <a href="#builder" title="Конструктор" aria-label="Конструктор" data-page="builder"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/icons.svg#workflow"></use></svg></span> Конструктор</a>
-      <a href="#behavior" title="Поведение бота" aria-label="Поведение бота" data-page="behavior"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/icons.svg#sliders-horizontal"></use></svg></span> Поведение бота</a>
-      <a href="#variables" title="Переменные" aria-label="Переменные" data-page="variables"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/icons.svg#braces"></use></svg></span> Переменные</a>
-      <a href="#testing" title="Тестирование" aria-label="Тестирование" data-page="testing"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/icons.svg#play"></use></svg></span> Тестирование</a>
-      <a href="#export" title="Экспорт" aria-label="Экспорт" data-page="export"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/icons.svg#download"></use></svg></span> Экспорт</a>
-      <a href="#settings" title="Настройки" aria-label="Настройки" data-page="settings"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/icons.svg#settings"></use></svg></span> Настройки</a>
-      <a href="#guide" title="Как пользоваться" aria-label="Как пользоваться" data-page="guide"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/icons.svg#circle-help"></use></svg></span> Как пользоваться</a>
+      <a href="#projects" title="Проекты" aria-label="Проекты" data-page="projects"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#folder"></use></svg></span> Проекты</a>
+      <a href="#builder" title="Конструктор" aria-label="Конструктор" data-page="builder"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#workflow"></use></svg></span> Конструктор</a>
+      <a href="#behavior" title="Поведение бота" aria-label="Поведение бота" data-page="behavior"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#sliders-horizontal"></use></svg></span> Поведение бота</a>
+      <a href="#variables" title="Переменные" aria-label="Переменные" data-page="variables"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#braces"></use></svg></span> Переменные</a>
+      <a href="#testing" title="Тестирование" aria-label="Тестирование" data-page="testing"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#play"></use></svg></span> Тестирование</a>
+      <a href="#export" title="Экспорт" aria-label="Экспорт" data-page="export"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#download"></use></svg></span> Экспорт</a>
+      <a href="#settings" title="Настройки" aria-label="Настройки" data-page="settings"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#settings"></use></svg></span> Настройки</a>
+      <a href="#guide" title="Как пользоваться" aria-label="Как пользоваться" data-page="guide"><span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#circle-help"></use></svg></span> Как пользоваться</a>
     </nav>
     <button type="button" class="mobile-menu-button" id="open-mobile-menu" aria-haspopup="dialog">Меню</button>
     <div class="sidebar-note"><span class="dot"></span> Рабочее пространство <small>Telegram · первая версия</small></div>
   </aside>
   <div class="workspace">
-    <header class="topbar"><span id="breadcrumb">Рабочее пространство</span><span class="local-badge">Серверное хранение</span><button type="button" class="help-button" id="open-guide"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/icons.svg#circle-help"></use></svg> Помощь</button></header>
+    <header class="topbar"><span id="breadcrumb">Рабочее пространство</span><span class="local-badge">Серверное хранение</span><button type="button" class="help-button" id="open-guide"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#circle-help"></use></svg> Помощь</button></header>
     <main id="main"></main>
   </div>
   <dialog id="mobile-menu" aria-labelledby="mobile-menu-title"><div class="dialog-heading"><h2 id="mobile-menu-title">Меню BotForge</h2><button type="button" id="close-mobile-menu" aria-label="Закрыть меню">×</button></div></dialog>

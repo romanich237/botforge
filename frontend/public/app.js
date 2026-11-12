@@ -13,7 +13,7 @@ let autosaveTimer = null, autosaveQueued = false;
 function element(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
 function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.classList.add('ui-icon'); svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '1.8'); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
-  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use'); use.setAttribute('href', '/icons.svg#' + name); svg.append(use); return svg;
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use'); use.setAttribute('href', '#' + name); svg.append(use); return svg;
 }
 function platformTag() {
   const tag = element('span', 'platform-tag', 'Telegram');
@@ -257,7 +257,10 @@ function renderBuilder(page = 'builder') {
   const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { openWorkspace('testing', 'test'); }), button('↓ Полный ZIP', downloadProjectBundle), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions); for (const b of actions.children) { if (b.textContent === 'Сохранить') b.dataset.tour = 'save'; if (b.textContent.includes('Предпросмотр')) b.dataset.tour = 'preview'; }
   renderBlockSearch();
   const mobileTabs = element('div', 'editor-tabs'); mobileTabs.setAttribute('role', 'group'); mobileTabs.setAttribute('aria-label', 'Панели конструктора');
-  for (const [id, text] of [['blocks', '+ Блоки'], ['canvas', '⌘ Схема'], ['properties', '⚙ Свойства'], ['test', '▷ Тест']]) { const b = button(text, () => { openWorkspace(id === 'test' ? 'testing' : 'builder', id); }, editorTab === id ? 'active' : ''); b.setAttribute('aria-pressed', String(editorTab === id)); mobileTabs.append(b); }
+  for (const [id, text, iconName] of [['blocks', 'Блоки', 'plus'], ['canvas', 'Схема', 'workflow'], ['properties', 'Свойства', 'sliders-horizontal'], ['test', 'Тест', 'play']]) {
+    const b = button(text, () => { openWorkspace(id === 'test' ? 'testing' : 'builder', id); }, editorTab === id ? 'active' : '');
+    b.prepend(icon(iconName)); b.classList.add('with-icon'); b.setAttribute('aria-pressed', String(editorTab === id)); mobileTabs.append(b);
+  }
   main.append(mobileTabs);
   const builder = element('section', 'builder editor-shell tab-' + (!['builder','testing'].includes(page) ? 'properties' : page === 'testing' ? 'test' : editorTab));
   const library = element('aside', 'library'); library.append(element('div', 'panel-eyebrow', 'ИНСТРУМЕНТЫ'), element('h2', '', 'Блоки сценария'), element('p', 'muted', 'Перетащите на схему или нажмите'));
