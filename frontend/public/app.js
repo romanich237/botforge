@@ -290,7 +290,7 @@ function renderWorkspacePanel(page, target) {
 }
 function renderBuilder(page = 'builder') {
   const h = heading('Сценарий бота', 'Telegram · Добавьте блоки, соедините и сохраните');
-  const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { openWorkspace('testing', 'test'); }), button('↓ Полный ZIP', downloadProjectBundle), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions); for (const b of actions.children) { if (b.textContent === 'Сохранить') b.dataset.tour = 'save'; if (b.textContent.includes('Предпросмотр')) b.dataset.tour = 'preview'; }
+  const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), button('⌫ Удалить', () => { if (!deleteSelection()) notify('Сначала выделите блок или линию.'); }, 'delete-selection-button'), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { openWorkspace('testing', 'test'); }), button('↓ Полный ZIP', downloadProjectBundle), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions); for (const b of actions.children) { if (b.textContent === 'Сохранить') b.dataset.tour = 'save'; if (b.textContent.includes('Предпросмотр')) b.dataset.tour = 'preview'; }
   renderBlockSearch();
   const mobileTabs = element('div', 'editor-tabs'); mobileTabs.setAttribute('role', 'group'); mobileTabs.setAttribute('aria-label', 'Панели конструктора');
   for (const [id, text, iconName] of [['blocks', 'Блоки', 'plus'], ['canvas', 'Схема', 'workflow'], ['properties', 'Свойства', 'sliders-horizontal'], ['test', 'Тест', 'play']]) {
@@ -321,7 +321,7 @@ function renderBuilder(page = 'builder') {
   dock.append(button('↖ Выбрать', () => { selectedNode = null; openWorkspace('builder'); }), button('＋ Текст', () => addNode('text')), button('⤢ Расставить', arrangeScenario), button('✦ ИИ', openAssistant, 'ai-trigger'), button('▷ Чат', () => { openWorkspace('testing', 'test'); })); center.append(dock);
   const canvas = element('div', 'flow-canvas'); canvas.setAttribute('aria-label', 'Схема сценария'); center.append(canvas);
   if (!draft.nodes.length) { const empty = element('div', 'canvas-welcome'); empty.append(element('div', 'welcome-icon', '⌘'), element('h2', '', 'Соберите свой первый сценарий'), element('p', '', 'Начните со старта — это вход в диалог по команде /start.'), button('+ Добавить старт', () => addNode('start'), 'primary'), button('Посмотреть обучение', openGuide, 'text-button')); center.append(empty); }
-  const footer = element('div', 'canvas-footer'); footer.append(element('span', '', 'Выделение рамкой · Shift — добавить · Delete — удалить · Колесо — перемещение')); center.append(footer);
+  const footer = element('div', 'canvas-footer'); footer.append(element('span', '', 'Выделение рамкой · Shift — добавить · Delete / ⌫ — удалить · Перетаскивайте схему двумя пальцами или колесом')); center.append(footer);
   builder.append(library, center);
   const inspector = element('aside', 'inspector'); inspector.setAttribute('aria-label', 'Панель ' + titles[page]); const panelMode = !['builder','testing'].includes(page); const testing = page === 'testing'; const tabs = element('div', 'inspector-tabs'); for (const [id, label] of [['properties','Свойства'],['test','Проверить чат']]) { const b = button(label, () => { openWorkspace(id === 'test' ? 'testing' : 'builder', id); }, (testing ? id === 'test' : id === 'properties') ? 'active' : ''); if (id === 'test') b.dataset.tour = 'preview'; tabs.append(b); } if (!panelMode) inspector.append(tabs);
   if (panelMode) renderWorkspacePanel(page, inspector); else {
@@ -485,7 +485,7 @@ document.querySelector('#create-form').onsubmit = async event => {
   try { const p = await api('', 'POST', { name }); projects.unshift(p); dialog.close(); render(); notify('Проект создан на сервере'); } catch (e) { notify(e.message); } finally { submit.disabled = false; }
 };
 document.addEventListener('keydown', event => {
-  if (event.key !== 'Delete' || event.repeat || !draft || location.hash !== '#builder') return;
+  if (!['Delete', 'Backspace'].includes(event.key) || event.repeat || !draft || location.hash !== '#builder' || event.metaKey || event.ctrlKey || event.altKey) return;
   const target = event.target;
   if (target?.closest?.('input, textarea, select, [contenteditable="true"]') || target?.isContentEditable || document.querySelector('dialog[open]')) return;
   if (!selectedNode && !selectedNodeIds.size && !selectedEdgeIds.size) return;
