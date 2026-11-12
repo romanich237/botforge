@@ -9,6 +9,7 @@ let guideStep = 0;
 let blockSearch = '', focusNode = null, advancedBlocks = false;
 let account = null, accountError = '';
 let projects = [], selectedId = sessionStorage.getItem('botforge.selected'), draft = null, dirty = false, busy = false, selectedNode = null, loadError = '', loading = true;
+let autosaveTimer = null, autosaveQueued = false;
 function element(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
 function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.classList.add('ui-icon'); svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '1.8'); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
@@ -20,20 +21,49 @@ function platformTag() {
   return tag;
 }
 function button(text, action, cls = '') { const marks = { '✦':'sparkles', '⤢':'layout-grid', '↶':'undo-2', '▷':'play', '↓':'download', '✓':'check', '↖':'mouse-pointer-2', '＋':'plus', '+':'plus', '?':'circle-help', '×':'x', '↻':'rotate-ccw', '↑':'arrow-up' }; const mark = marks[text[0]]; const b = element('button', cls, mark ? text.slice(1).trim() : text); if (mark) { b.prepend(icon(mark)); b.classList.add('with-icon'); if (!text.slice(1).trim()) b.setAttribute('aria-label', text === '×' ? 'Закрыть' : text === '↻' ? 'Перезапустить' : text); } b.type = 'button'; b.onclick = () => Promise.resolve().then(action).catch(e => notify(e.message)); return b; }
-function notify(message) { const t = document.querySelector('#toast'); t.textContent = message; t.hidden = false; clearTimeout(notify.timer); notify.timer = setTimeout(() => { t.hidden = true; }, 6000); }
+function notify(message, action) {
+  const t = document.querySelector('#toast'); t.replaceChildren(element('span', '', message));
+  if (action) t.append(button(action.label, async () => { clearTimeout(notify.timer); t.hidden = true; await action.run(); }, 'toast-action'));
+  t.hidden = false; clearTimeout(notify.timer); notify.timer = setTimeout(() => { t.hidden = true; }, action ? 10000 : 6000);
+}
 async function api(url, method = 'GET', body) { const r = await fetch('/api/projects' + url, { method, headers: body === undefined ? {} : { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const data = await r.json(); if (!r.ok) throw Error(data.message || 'Ошибка запроса'); return data; }
 function status(text) { document.querySelector('.local-badge').textContent = text; }
-function changed() { window.BotForgeTour?.update(); dirty = true; status('Есть изменения'); refreshChecklist(); if (document.querySelector('#chat-mount')) paintChat(); }
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => { autosaveTimer = null; saveProject({ quiet: true }); }, 700);
+}
+function changed() {
+  window.BotForgeTour?.update(); dirty = true; status('Сохранение…'); scheduleAutosave();
+  refreshChecklist(); if (document.querySelector('#chat-mount')) paintChat();
+}
 function leave() { if (busy) { notify('Дождитесь завершения сохранения'); return false; } return !dirty || confirm('Есть несохранённые изменения. Покинуть проект?'); }
 async function reload() { loading = true; loadError = ''; render(); try { projects = await api(''); } catch (e) { loadError = e.message; } loading = false; render(); }
-async function openProject(id) { if (!leave()) return; const project = await api('/' + id); draft = project; blockSearch = ''; focusNode = null; editorTab = 'canvas'; canvasViewport = null; selectedId = id; selectedNode = null; dirty = false; sessionStorage.setItem('botforge.selected', id); location.hash = 'builder'; render(); }
-async function saveProject() {
-  if (busy || !draft) return false;
-  busy = true; status('Сохраняется…');
-  const snapshot = JSON.stringify(draft);
-  try { const saved = await api('/' + draft.id, 'PUT', draft); projects = projects.map(p => p.id === saved.id ? saved : p); if (JSON.stringify(draft) === snapshot) { draft = saved; dirty = false; render(); } else { draft.revision = saved.revision; } status(dirty ? 'Есть изменения' : 'Сохранено'); return !dirty; }
-  catch (e) { status('Ошибка сохранения'); notify(e.message + ' Изменения остаются на экране. Нажмите «Сохранить» для повтора.'); return false; }
-  finally { busy = false; refreshChecklist(); }
+async function openProject(id) { if (!leave()) return; clearTimeout(autosaveTimer); autosaveTimer = null; const project = await api('/' + id); draft = project; blockSearch = ''; focusNode = null; editorTab = 'canvas'; canvasViewport = null; selectedId = id; selectedNode = null; dirty = false; sessionStorage.setItem('botforge.selected', id); location.hash = 'builder'; render(); }
+async function saveProject({ quiet = false } = {}) {
+  clearTimeout(autosaveTimer); autosaveTimer = null;
+  if (!draft) return false;
+  if (busy) { autosaveQueued = true; return false; }
+  busy = true; autosaveQueued = false; status('Сохранение…');
+  const target = draft, snapshot = JSON.stringify(target);
+  try {
+    const saved = await api('/' + target.id, 'PUT', target);
+    projects = projects.map(p => p.id === saved.id ? saved : p);
+    if (draft === target && JSON.stringify(draft) === snapshot) {
+      draft.revision = saved.revision; draft.updatedAt = saved.updatedAt; dirty = false;
+    } else if (draft === target) {
+      draft.revision = saved.revision; dirty = true; autosaveQueued = true;
+    }
+    status(dirty ? 'Сохранение…' : 'Сохранено');
+    return !dirty;
+  } catch (e) {
+    status('Не сохранено');
+    if (!quiet) notify(e.message + ' Изменения остались в редакторе.');
+    else notify('Не удалось сохранить изменения', { label: 'Повторить', run: () => saveProject() });
+    return false;
+  } finally {
+    busy = false; refreshChecklist();
+    if (autosaveQueued && draft) scheduleAutosave();
+  }
 }
 function field(parent, label, value, onChange, options) {
   const wrap = element('label', 'field'); wrap.append(element('span', '', label));
@@ -43,29 +73,75 @@ function field(parent, label, value, onChange, options) {
 }
 function heading(title, description, target = main) { const h = element('div', 'page-heading'); const t = element('div'); t.append(element('h1', '', title), element('p', '', description)); h.append(t); target.append(h); return h; }
 function renderProjects() {
-  const h = heading('Проекты', 'Сценарии и исходный код ваших Telegram-ботов.');
+  const h = heading('Проекты', 'Ваши Telegram-боты.');
   const projectActions = element('div', 'project-heading-actions'); h.append(projectActions);
   projectActions.append(button('✦ Создать с ИИ', async () => { if (!leave()) return; const p = await api('', 'POST', { name: 'Новый бот с ИИ' }); projects.unshift(p); dirty = false; await openProject(p.id); openAssistant(); }, 'ai-trigger'));
   projectActions.append(button('+ Создать бота', () => { document.querySelector('#create-form').reset(); dialog.showModal(); }, 'primary'));
   if (loading) return main.append(element('section', 'empty', 'Загружаем проекты…'));
   if (loadError) { const p = element('section', 'empty'); p.append(element('p', '', loadError), button('Повторить загрузку', reload)); return main.append(p); }
-  const toolbar = element('div', 'toolbar'); const search = element('input'); search.type = 'search'; search.placeholder = 'Поиск по проектам…'; search.setAttribute('aria-label', 'Поиск по проектам'); toolbar.append(search, platformTag(), element('span', 'muted', projects.length + ' проектов')); main.append(toolbar);
-  if (!sessionStorage.getItem('botforge.welcome.hidden')) { const welcome = element('section', 'welcome-banner'); const content = element('div'); content.append(element('span', 'eyebrow', 'ОБУЧЕНИЕ'), element('h2', '', 'Первый проект в BotForge'), element('p', '', 'Разберитесь с блоками, связями и предпросмотром на учебном примере.')); const actions = element('div', 'welcome-actions'); actions.append(button('Пройти обучение', openGuide, 'primary'), button('Открыть учебный пример', createExample), button('Скрыть', () => { sessionStorage.setItem('botforge.welcome.hidden', 'true'); render(); }, 'text-button')); welcome.append(content, actions); main.append(welcome); }
+
+  const toolbar = element('div', 'toolbar project-toolbar');
+  const search = element('input'); search.type = 'search'; search.placeholder = 'Найти проект'; search.setAttribute('aria-label', 'Поиск по проектам');
+  const sort = element('select', 'project-sort'); sort.setAttribute('aria-label', 'Сортировка проектов');
+  for (const [value, label] of [['updated-desc', 'Сначала новые'], ['updated-asc', 'Сначала старые'], ['name-asc', 'По названию А–Я'], ['name-desc', 'По названию Я–А']]) {
+    const option = element('option', '', label); option.value = value; sort.append(option);
+  }
+  sort.value = sessionStorage.getItem('botforge.sort') || 'updated-desc';
+  toolbar.append(search, sort, element('span', 'project-count', projects.length + ' проектов')); main.append(toolbar);
+
   const grid = element('div', 'project-grid row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 d-flex gap-0'); main.append(grid);
+  const sortedProjects = () => [...projects]
+    .filter(project => project.name.toLocaleLowerCase().includes(search.value.trim().toLocaleLowerCase()))
+    .sort((left, right) => {
+      if (sort.value === 'updated-asc') return left.updatedAt - right.updatedAt;
+      if (sort.value === 'name-asc') return left.name.localeCompare(right.name, 'ru');
+      if (sort.value === 'name-desc') return right.name.localeCompare(left.name, 'ru');
+      return right.updatedAt - left.updatedAt;
+    });
+
   function update() {
     grid.replaceChildren();
-    for (const project of projects.filter(p => p.name.toLocaleLowerCase().includes(search.value.toLocaleLowerCase()))) {
-      const card = element('article', 'project-card'); const top = element('div', 'card-top'); const title = element('div'); title.append(element('h2', '', project.name), platformTag()); const projectIcon = element('div', 'project-icon'); projectIcon.append(icon('workflow')); top.append(projectIcon, title);
+    for (const project of sortedProjects()) {
+      const card = element('article', 'project-card');
+      const top = element('div', 'card-top');
+      const title = element('div'); title.append(element('h2', '', project.name), platformTag());
+      const projectIcon = element('div', 'project-icon'); projectIcon.append(icon('workflow'));
+      const menu = element('details', 'project-menu');
+      const summary = element('summary'); summary.setAttribute('aria-label', 'Действия с проектом ' + project.name); summary.append(icon('ellipsis'));
+      const menuPanel = element('div', 'project-menu-panel');
+      menuPanel.append(
+        button('Копировать', async () => { menu.removeAttribute('open'); await api('/' + project.id + '/duplicate', 'POST', {}); await reload(); }),
+        button('Удалить', async () => {
+          menu.removeAttribute('open');
+          if (!confirm('Удалить проект «' + project.name + '»?')) return;
+          await api('/' + project.id, 'DELETE');
+          projects = projects.filter(item => item.id !== project.id);
+          if (selectedId === project.id) { draft = null; selectedId = null; dirty = false; sessionStorage.removeItem('botforge.selected'); }
+          update();
+          notify('Проект удалён', {
+            label: 'Восстановить',
+            run: async () => { const restored = await api('', 'POST', project); projects.unshift(restored); update(); notify('Проект восстановлен'); }
+          });
+        }, 'danger')
+      );
+      menu.append(summary, menuPanel); top.append(projectIcon, title, menu);
+
       const thumbnail = element('div', 'project-thumbnail'); thumbnail.setAttribute('aria-hidden', 'true');
-      for (const node of project.nodes.slice(0, 3)) { const box = element('span', 'project-mini-node', blockNames[node.type]); thumbnail.append(box); }
+      for (const node of project.nodes.slice(0, 3)) thumbnail.append(element('span', 'project-mini-node', blockNames[node.type]));
       if (!project.nodes.length) thumbnail.append(element('span', 'project-thumbnail-empty', 'Пустой сценарий'));
-      card.append(thumbnail, top, element('p', 'muted', project.nodes.length + ' блоков · ' + new Date(project.updatedAt).toLocaleString('ru-RU')));
-      const actions = element('div', 'card-actions'); actions.append(button('Открыть', () => openProject(project.id), 'open'), button('Копия', async () => { await api('/' + project.id + '/duplicate', 'POST', {}); await reload(); }));
-      const remove = button('×', async () => { if (confirm('Удалить проект «' + project.name + '»?')) { await api('/' + project.id, 'DELETE'); if (selectedId === project.id) { draft = null; selectedId = null; dirty = false; sessionStorage.removeItem('botforge.selected'); } await reload(); } }, 'icon-button'); remove.setAttribute('aria-label', 'Удалить ' + project.name); actions.append(remove); card.append(actions); const column = element('div', 'project-column'); column.append(card); grid.append(column);
+
+      const updated = element('time', 'project-updated', new Date(project.updatedAt).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }));
+      updated.dateTime = new Date(project.updatedAt).toISOString();
+      card.append(top, thumbnail, element('p', 'project-meta', project.nodes.length + ' блоков'), updated);
+      card.append(button('Открыть проект', () => openProject(project.id), 'open project-open'));
+      const column = element('div', 'project-column'); column.append(card); grid.append(column);
     }
-    if (!grid.children.length) grid.append(element('section', 'empty w-100', projects.length ? 'Ничего не найдено. Измените запрос.' : 'Создайте первого бота — начните с пустого проекта.'));
+    if (!grid.children.length) grid.append(element('section', 'empty w-100', projects.length ? 'Проекты не найдены.' : 'Создайте первый проект.'));
   }
-  search.oninput = update; update();
+  search.oninput = update;
+  sort.onchange = () => { sessionStorage.setItem('botforge.sort', sort.value); update(); };
+  update();
+
   if (localStorage.getItem(storageKey)) main.append(button('Перенести старые проекты из браузера', async () => {
     const old = JSON.parse(localStorage.getItem(storageKey)); if (!Array.isArray(old)) throw Error('Некорректные локальные данные');
     while (old.length) { await api('', 'POST', { name: old[0].name }); old.shift(); localStorage.setItem(storageKey, JSON.stringify(old)); }
