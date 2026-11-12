@@ -32,7 +32,7 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, '..
       if (!url.pathname.startsWith('/api/')) {
         const entry = files[url.pathname];
         if (!entry || req.method !== 'GET') return send(404, { message: 'Не найдено' });
-        res.writeHead(200, { 'Content-Type': entry[1] });
+        res.writeHead(200, { 'Content-Type': entry[1], 'Cache-Control': 'no-cache, must-revalidate' });
         return res.end(await fs.readFile(path.join(__dirname, '..', 'frontend', 'public', entry[0])));
       }
       if (!['GET', 'POST', 'PUT', 'DELETE'].includes(req.method)) return send(405, { message: 'Метод не поддерживается' });

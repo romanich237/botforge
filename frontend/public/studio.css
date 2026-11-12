@@ -1,3 +1,11 @@
+.icon-sprite {
+  position: fixed;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 /* Shared workspace theme. Public welcome styles stay in style.css. */
 body:not(.is-welcome) { --blue:#25262b; --border:#e1e2e6; --muted:#81828c; background:#fafafa; color:#27282e; }
 body:not(.is-welcome) button,body:not(.is-welcome) .button { border-radius:5px; box-shadow:none; }
