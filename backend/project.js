@@ -1,6 +1,6 @@
 const types = ['start', 'command', 'text', 'buttons', 'input', 'condition', 'end'];
 function defaults() {
-  return { version: 1, name: '', description: '', platform: 'telegram', nodes: [], edges: [], variables: [], behavior: { unknownCommand: true, unknownText: true, help: true, cancel: true, disableOldButtons: true, repeatQuestion: true, preventDoubleClick: true, ignoreCase: false, history: 'keep', deleteUser: false, typing: false, inputTimeout: false, timeoutSeconds: 60, timeoutText: 'Время ожидания истекло.', rateLimit: false, rateCount: 5, rateSeconds: 10, unknownCommandText: 'Неизвестная команда. Введите /help', unknownTextMessage: 'Не понимаю. Введите /help' } };
+  return { version: 1, name: '', description: '', platform: 'telegram', nodes: [], edges: [], variables: [], behavior: { unknownCommand: true, unknownText: true, help: true, cancel: true, disableOldButtons: true, repeatQuestion: true, preventDoubleClick: true, ignoreCase: false, history: 'keep', deleteUser: false, typing: false, inputTimeout: false, timeoutSeconds: 60, timeoutText: 'Время ожидания истекло.', rateLimit: false, rateCount: 5, rateSeconds: 10, subscriptionChat: '', subscriptionMessage: 'Подпишитесь на канал и повторите попытку.', unknownCommandText: 'Неизвестная команда. Введите /help', unknownTextMessage: 'Не понимаю. Введите /help' } };
 }
 function checkShape(p) {
   if (!p || typeof p !== 'object' || Array.isArray(p)) return 'Ожидается объект проекта';
@@ -10,6 +10,8 @@ function checkShape(p) {
   if (!p.behavior || typeof p.behavior !== 'object' || Array.isArray(p.behavior)) return 'Некорректные настройки поведения';
   for (const [key, value] of Object.entries(defaults().behavior)) if (p.behavior[key] !== undefined && typeof p.behavior[key] !== typeof value) return 'Некорректная настройка поведения: ' + key;
   if (p.behavior.history !== undefined && !['keep', 'delete', 'update'].includes(p.behavior.history)) return 'Некорректный режим истории';
+  if (p.behavior.subscriptionChat && !/^@[A-Za-z0-9_]{5,32}$|^-100[0-9]{5,20}$/.test(p.behavior.subscriptionChat)) return 'Канал для проверки подписки: @username или числовой ID -100...';
+  if (p.behavior.subscriptionMessage?.length > 1000) return 'Сообщение о подписке слишком длинное';
   const ids = new Set();
   for (const n of p.nodes) {
     if (!n || typeof n.id !== 'string' || !n.id || ids.has(n.id) || !types.includes(n.type) || !n.data || typeof n.data !== 'object' || Array.isArray(n.data) || !Number.isFinite(n.x) || !Number.isFinite(n.y)) return 'Некорректный блок или повтор ID';
