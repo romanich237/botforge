@@ -22,16 +22,18 @@
     if (project.nodes.length + clipboard.nodes.length > 500 || project.edges.length + clipboard.edges.length > 2000) return { error: 'Превышен лимит блоков или связей проекта.' };
     const offset = 40 * (++pasteCount);
     const ids = new Map();
+    const usedCommands = new Set(project.nodes.filter(n => n.type === 'command').map(n => n.data.command));
     const nodes = clipboard.nodes.map(original => {
       const node = clone(original);
       node.id = crypto.randomUUID(); ids.set(original.id, node.id);
       node.x += offset; node.y += offset;
       if (node.type === 'command' && typeof node.data.command === 'string') {
-        const used = new Set([...project.nodes, ...nodes].filter(n => n.type === 'command').map(n => n.data.command));
+        const used = usedCommands;
         const base = node.data.command.replace(/_[0-9]+$/, '').slice(0, 26);
         let index = 1, command = base + '_' + index;
         while (used.has(command)) command = base + '_' + (++index);
         node.data.command = command;
+        usedCommands.add(command);
       }
       if (node.type === 'buttons' && Array.isArray(node.data.buttons)) {
         const buttonIds = new Map();
