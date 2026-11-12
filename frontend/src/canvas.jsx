@@ -44,6 +44,8 @@ window.BotForgeCanvas = {
         onReconnect={(edge, connection) => callbacks.reconnect(edge, connection)}
         onNodeClick={(event, node) => { if (!event.shiftKey) callbacks.select(node.id); }}
         onNodeContextMenu={(event, node) => { event.preventDefault(); callbacks.contextNode?.(node.id, event.clientX, event.clientY); }}
+        onEdgeContextMenu={(event, edge) => { event.preventDefault(); callbacks.contextEdge?.(edge.id, event.clientX, event.clientY); }}
+        onPaneContextMenu={event => { event.preventDefault(); callbacks.contextPane?.(event.clientX, event.clientY); }}
         onPaneClick={() => callbacks.select(null)}
         onSelectionChange={({ nodes: selectedNodes, edges: selectedEdges }) => callbacks.selection?.(selectedNodes.map(node => node.id), selectedEdges.map(edge => edge.id))}
         onMoveEnd={(_, next) => callbacks.viewport(next)}
