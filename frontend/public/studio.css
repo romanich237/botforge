@@ -298,3 +298,19 @@ body:not(.is-welcome) .inspector .validation-issue {
   .inspector .validation-panel { margin-top: 0; padding: 12px; }
   body:not(.is-welcome) .inspector .validation-issue { min-height: 46px; font-size: 13px; }
 }
+
+
+/* Figma-like selection */
+.react-flow__selection,
+.react-flow__nodesselection-rect {
+  border: 1px solid #4388e8;
+  background: #4388e814;
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #2f78d5;
+  stroke-width: 3;
+}
+.react-flow__node.selected .scenario-node {
+  border-color: #2f78d5;
+  box-shadow: 0 0 0 2px #2f78d526;
+}

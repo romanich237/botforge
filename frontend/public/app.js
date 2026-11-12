@@ -9,6 +9,7 @@ let guideStep = 0;
 let blockSearch = '', focusNode = null, advancedBlocks = false;
 let account = null, accountError = '';
 let projects = [], selectedId = sessionStorage.getItem('botforge.selected'), draft = null, dirty = false, busy = false, selectedNode = null, loadError = '', loading = true;
+let selectedNodeIds = new Set(), selectedEdgeIds = new Set();
 let autosaveTimer = null, autosaveQueued = false;
 let validationResult = null;
 function element(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
@@ -39,7 +40,7 @@ function changed() {
 }
 function leave() { if (busy) { notify('Дождитесь завершения сохранения'); return false; } return !dirty || confirm('Есть несохранённые изменения. Покинуть проект?'); }
 async function reload() { loading = true; loadError = ''; render(); try { projects = await api(''); } catch (e) { loadError = e.message; } loading = false; render(); }
-async function openProject(id) { if (!leave()) return; clearTimeout(autosaveTimer); autosaveTimer = null; const project = await api('/' + id); draft = project; blockSearch = ''; focusNode = null; editorTab = 'canvas'; canvasViewport = null; selectedId = id; selectedNode = null; dirty = false; sessionStorage.setItem('botforge.selected', id); location.hash = 'builder'; render(); }
+async function openProject(id) { if (!leave()) return; clearTimeout(autosaveTimer); autosaveTimer = null; const project = await api('/' + id); draft = project; blockSearch = ''; focusNode = null; editorTab = 'canvas'; canvasViewport = null; selectedId = id; selectedNode = null; selectedNodeIds.clear(); selectedEdgeIds.clear(); dirty = false; sessionStorage.setItem('botforge.selected', id); location.hash = 'builder'; render(); }
 async function saveProject({ quiet = false } = {}) {
   clearTimeout(autosaveTimer); autosaveTimer = null;
   if (!draft) return false;
@@ -200,28 +201,39 @@ function addNode(type, position) {
   if (!Object.hasOwn(blockNames, type) || (type === 'start' && draft.nodes.some(n => n.type === 'start'))) return;
   const id = crypto.randomUUID(); draft.nodes.push({ id, type, x: position?.x ?? draft.nodes.length % 3 * 320, y: position?.y ?? Math.floor(draft.nodes.length / 3) * 240, data: { text: '', command: '', variable: '', validation: 'text', error: 'Проверьте введённое значение', operation: 'eq', value: '', placement: 'inline', buttons: [] } }); selectedNode = id; changed(); openWorkspace('builder', 'properties');
 }
-function deleteNode(id, { confirmFirst = false } = {}) {
-  const index = draft?.nodes.findIndex(node => node.id === id) ?? -1;
-  if (index < 0) return false;
-  const node = structuredClone(draft.nodes[index]);
-  const edges = structuredClone(draft.edges.filter(edge => edge.source === id || edge.target === id));
-  if (confirmFirst && !confirm('Удалить блок и его связи?')) return false;
-  draft.nodes.splice(index, 1);
-  draft.edges = draft.edges.filter(edge => edge.source !== id && edge.target !== id);
-  if (selectedNode === id) selectedNode = null;
-  if (focusNode === id) focusNode = null;
+function deleteSelection({ confirmFirst = false, nodeIds, edgeIds } = {}) {
+  const nodesToDelete = new Set(nodeIds || (selectedNodeIds.size > 1 && !selectedNode ? selectedNodeIds : selectedNode ? [selectedNode] : selectedNodeIds));
+  const edgesToDelete = new Set(edgeIds || selectedEdgeIds);
+  for (const edge of draft?.edges || []) if (nodesToDelete.has(edge.source) || nodesToDelete.has(edge.target)) edgesToDelete.add(edge.id);
+  if (!nodesToDelete.size && !edgesToDelete.size) return false;
+  if (confirmFirst && !confirm('Удалить выделенные блоки и связи?')) return false;
+
+  const nodes = draft.nodes.map((node, index) => ({ node: structuredClone(node), index })).filter(item => nodesToDelete.has(item.node.id));
+  const edges = draft.edges.filter(edge => edgesToDelete.has(edge.id)).map(edge => structuredClone(edge));
+  draft.nodes = draft.nodes.filter(node => !nodesToDelete.has(node.id));
+  draft.edges = draft.edges.filter(edge => !edgesToDelete.has(edge.id));
+  selectedNode = null; selectedNodeIds.clear(); selectedEdgeIds.clear(); focusNode = null;
   changed(); render();
-  notify('Блок удалён', {
+
+  const nodeCount = nodes.length, edgeCount = edges.length;
+  const message = nodeCount ? (nodeCount === 1 ? 'Блок удалён' : 'Удалено блоков: ' + nodeCount) : (edgeCount === 1 ? 'Линия удалена' : 'Удалено линий: ' + edgeCount);
+  notify(message, {
     label: 'Восстановить',
     run: () => {
-      if (!draft || draft.nodes.some(item => item.id === node.id)) return;
-      draft.nodes.splice(Math.min(index, draft.nodes.length), 0, node);
-      const nodeIds = new Set(draft.nodes.map(item => item.id));
-      for (const edge of edges) if (nodeIds.has(edge.source) && nodeIds.has(edge.target) && !draft.edges.some(item => item.id === edge.id)) draft.edges.push(edge);
-      selectedNode = node.id; changed(); render();
+      if (!draft) return;
+      for (const item of nodes.sort((left, right) => left.index - right.index)) {
+        if (!draft.nodes.some(node => node.id === item.node.id)) draft.nodes.splice(Math.min(item.index, draft.nodes.length), 0, item.node);
+      }
+      const available = new Set(draft.nodes.map(node => node.id));
+      for (const edge of edges) if (available.has(edge.source) && available.has(edge.target) && !draft.edges.some(item => item.id === edge.id)) draft.edges.push(edge);
+      if (nodes.length === 1) { selectedNode = nodes[0].node.id; selectedNodeIds.add(selectedNode); }
+      changed(); render();
     }
   });
   return true;
+}
+function deleteNode(id, { confirmFirst = false } = {}) {
+  return deleteSelection({ confirmFirst, nodeIds: [id], edgeIds: [] });
 }
 function connectBlocks(source, output, target) {
   if (!draft.nodes.some(n => n.id === target) || !draft.nodes.some(n => n.id === source && outputs(n).some(o => o[0] === output))) return;
@@ -309,7 +321,7 @@ function renderBuilder(page = 'builder') {
   dock.append(button('↖ Выбрать', () => { selectedNode = null; openWorkspace('builder'); }), button('＋ Текст', () => addNode('text')), button('⤢ Расставить', arrangeScenario), button('✦ ИИ', openAssistant, 'ai-trigger'), button('▷ Чат', () => { openWorkspace('testing', 'test'); })); center.append(dock);
   const canvas = element('div', 'flow-canvas'); canvas.setAttribute('aria-label', 'Схема сценария'); center.append(canvas);
   if (!draft.nodes.length) { const empty = element('div', 'canvas-welcome'); empty.append(element('div', 'welcome-icon', '⌘'), element('h2', '', 'Соберите свой первый сценарий'), element('p', '', 'Начните со старта — это вход в диалог по команде /start.'), button('+ Добавить старт', () => addNode('start'), 'primary'), button('Посмотреть обучение', openGuide, 'text-button')); center.append(empty); }
-  const footer = element('div', 'canvas-footer'); footer.append(element('span', '', 'Перетаскивайте блоки · Прокрутка — перемещение · ⌘ / Ctrl + прокрутка — масштаб')); center.append(footer);
+  const footer = element('div', 'canvas-footer'); footer.append(element('span', '', 'Выделение рамкой · Shift — добавить · Delete — удалить · Колесо — перемещение')); center.append(footer);
   builder.append(library, center);
   const inspector = element('aside', 'inspector'); inspector.setAttribute('aria-label', 'Панель ' + titles[page]); const panelMode = !['builder','testing'].includes(page); const testing = page === 'testing'; const tabs = element('div', 'inspector-tabs'); for (const [id, label] of [['properties','Свойства'],['test','Проверить чат']]) { const b = button(label, () => { openWorkspace(id === 'test' ? 'testing' : 'builder', id); }, (testing ? id === 'test' : id === 'properties') ? 'active' : ''); if (id === 'test') b.dataset.tour = 'preview'; tabs.append(b); } if (!panelMode) inspector.append(tabs);
   if (panelMode) renderWorkspacePanel(page, inspector); else {
@@ -335,13 +347,21 @@ function renderBuilder(page = 'builder') {
   disposeCanvas = window.BotForgeCanvas.mount(canvas, draft, blockNames, outputs, {
     drop: (type, position) => addNode(type, position),
     selected: selectedNode,
+    selectionState: () => ({ nodes: [...selectedNodeIds], edges: [...selectedEdgeIds] }),
+    selection: (nodeIds, edgeIds) => {
+      selectedNodeIds = new Set(nodeIds); selectedEdgeIds = new Set(edgeIds);
+      selectedNode = nodeIds.length === 1 ? nodeIds[0] : null;
+    },
     focus: focusNode,
     reconnect: (edge, connection) => {
       if (!window.BotForgeEditor.reconnect(draft, edge.id, connection)) return notify('Этот выход уже занят или соединение недопустимо. Связь сохранена.');
       changed(); render();
     },
     current: () => previewState?.engine.project.id === draft.id && !previewStale() ? previewState.engine.current : null,
-    select: id => { if (selectedNode !== id) { selectedNode = id; if (id) openWorkspace('builder', 'properties'); else render(); } },
+    select: id => {
+      selectedNode = id; selectedNodeIds = new Set(id ? [id] : []); selectedEdgeIds.clear();
+      if (id) openWorkspace('builder', 'properties'); else render();
+    },
     connect: c => connectBlocks(c.source, c.sourceHandle, c.target),
     move: changes => { for (const c of changes) if (c.type === 'position' && c.position) { const n = draft.nodes.find(n => n.id === c.id); if (n && (n.x !== c.position.x || n.y !== c.position.y)) { n.x = c.position.x; n.y = c.position.y; changed(); } } },
     edges: changes => { const removed = new Set(changes.filter(c => c.type === 'remove').map(c => c.id)); if (removed.size) { draft.edges = draft.edges.filter(e => !removed.has(e.id)); changed(); } },
@@ -465,11 +485,12 @@ document.querySelector('#create-form').onsubmit = async event => {
   try { const p = await api('', 'POST', { name }); projects.unshift(p); dialog.close(); render(); notify('Проект создан на сервере'); } catch (e) { notify(e.message); } finally { submit.disabled = false; }
 };
 document.addEventListener('keydown', event => {
-  if (event.key !== 'Delete' || event.repeat || !draft || !selectedNode || location.hash !== '#builder') return;
+  if (event.key !== 'Delete' || event.repeat || !draft || location.hash !== '#builder') return;
   const target = event.target;
   if (target?.closest?.('input, textarea, select, [contenteditable="true"]') || target?.isContentEditable || document.querySelector('dialog[open]')) return;
+  if (!selectedNode && !selectedNodeIds.size && !selectedEdgeIds.size) return;
   event.preventDefault();
-  deleteNode(selectedNode);
+  deleteSelection();
 });
 window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('hashchange', render);

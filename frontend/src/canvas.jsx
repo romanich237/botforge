@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ReactFlow, Background, Controls, MiniMap, Handle, Position, applyNodeChanges, applyEdgeChanges, MarkerType, useReactFlow, useNodesInitialized } from '@xyflow/react';
+import { ReactFlow, Background, Controls, MiniMap, Handle, Position, applyNodeChanges, applyEdgeChanges, MarkerType, SelectionMode, useReactFlow, useNodesInitialized } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 const icons = { start: '▶', command: '/', text: 'T', buttons: '▦', input: '↵', condition: '◇', end: '■' };
@@ -27,8 +27,9 @@ window.BotForgeCanvas = {
     let refresh = () => {};
     function Canvas() {
       const [flow, setFlow] = useState(null);
-      const [nodes, setNodes] = useState(project.nodes.map(n => ({ id: n.id, type: 'scenario', position: { x: n.x, y: n.y }, selected: n.id === callbacks.selected, data: { title: names[n.type], active: callbacks.current?.() === n.id, type: n.type, text: n.data.text || n.data.command, outputs: outputs(n) } })));
-      const [edges, setEdges] = useState(project.edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.output, type: 'smoothstep', markerEnd: { type: MarkerType.ArrowClosed }, style: { strokeWidth: 2 } })));
+      const initialSelection = callbacks.selectionState?.() || { nodes: [], edges: [] };
+      const [nodes, setNodes] = useState(project.nodes.map(n => ({ id: n.id, type: 'scenario', position: { x: n.x, y: n.y }, selected: initialSelection.nodes.includes(n.id) || n.id === callbacks.selected, data: { title: names[n.type], active: callbacks.current?.() === n.id, type: n.type, text: n.data.text || n.data.command, outputs: outputs(n) } })));
+      const [edges, setEdges] = useState(project.edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.output, selected: initialSelection.edges.includes(e.id), type: 'smoothstep', markerEnd: { type: MarkerType.ArrowClosed }, style: { strokeWidth: 2 } })));
       refresh = () => {
         setNodes(current => current.map(node => { const n = project.nodes.find(n => n.id === node.id); return n ? { ...node, data: { title: names[n.type], active: callbacks.current?.() === n.id, type: n.type, text: n.data.text || n.data.command, outputs: outputs(n) } } : node; }));
         setEdges(project.edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.output, type: 'smoothstep', markerEnd: { type: MarkerType.ArrowClosed } })));
@@ -41,10 +42,11 @@ window.BotForgeCanvas = {
         onConnect={connection => callbacks.connect(connection)}
         edgesReconnectable reconnectRadius={18}
         onReconnect={(edge, connection) => callbacks.reconnect(edge, connection)}
-        onNodeClick={(_, node) => callbacks.select(node.id)}
+        onNodeClick={(event, node) => { if (!event.shiftKey) callbacks.select(node.id); }}
         onPaneClick={() => callbacks.select(null)}
+        onSelectionChange={({ nodes: selectedNodes, edges: selectedEdges }) => callbacks.selection?.(selectedNodes.map(node => node.id), selectedEdges.map(edge => edge.id))}
         onMoveEnd={(_, next) => callbacks.viewport(next)}
-        deleteKeyCode={null} selectionKeyCode="Shift" panOnScroll zoomOnScroll={false} zoomOnPinch
+        deleteKeyCode={null} selectionOnDrag selectionMode={SelectionMode.Partial} selectionKeyCode="Shift" multiSelectionKeyCode="Shift" panOnDrag={[1, 2]} panOnScroll zoomOnScroll={false} zoomOnPinch
         proOptions={{ hideAttribution: true }}
         ariaLabelConfig={{ 'controls.zoomIn.ariaLabel': 'Приблизить', 'controls.zoomOut.ariaLabel': 'Отдалить', 'controls.fitView.ariaLabel': 'Показать всю схему', 'controls.interactive.ariaLabel': 'Переключить перемещение блоков' }}>
         <FocusNode id={callbacks.focus}/>
