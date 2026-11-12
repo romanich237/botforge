@@ -217,7 +217,9 @@ function renderBuilder(page = 'builder') {
   const node = draft.nodes.find(n => n.id === selectedNode);
   if (testing) {}
   else if (node) renderProperties(node, inspector);
-  else { inspector.append(element('h2', '', 'Свойства блока'), element('div', 'inspector-empty', '↖'), element('h3', '', 'Выберите блок на схеме'), element('p', 'muted', 'Здесь появятся текст сообщения, кнопки и настройки переходов.'), element('div', 'inspector-tip', 'Совет: линии можно выделить и удалить кнопкой ниже.')); }
+  else {
+    inspector.append(element('h2', '', 'Свойства блока'), element('p', 'muted', 'Выберите блок на схеме.'));
+  }
   const connections = element('details', 'connections-list'); connections.append(element('summary', '', 'Связи · ' + draft.edges.length));
   for (const edge of draft.edges) { const source = draft.nodes.find(n => n.id === edge.source), target = draft.nodes.find(n => n.id === edge.target); if (!source || !target) continue; const row = element('div', 'connection-row'); row.append(element('span', '', blockNames[source.type] + ' → ' + blockNames[target.type]), button('×', () => { draft.edges = draft.edges.filter(e => e.id !== edge.id); changed(); render(); }, 'remove-edge')); row.lastChild.setAttribute('aria-label', 'Удалить связь ' + blockNames[source.type] + ' → ' + blockNames[target.type]); connections.append(row); }
   if (!testing) inspector.append(connections);

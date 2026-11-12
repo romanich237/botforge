@@ -73,8 +73,6 @@ body:not(.is-welcome) .inspector input,body:not(.is-welcome) .inspector textarea
 body:not(.is-welcome) .inspector button { background:#fafafa; color:#787b8c; border-color:#dddfe7; }
 body:not(.is-welcome) .inspector button.primary { background:#292a30; color:white; border-color:#292a30; }
 body:not(.is-welcome) .inspector .property-tip,body:not(.is-welcome) .inspector .muted { color:#696d78; }
-body:not(.is-welcome) .inspector .inspector-tip { background:#f5f5f7; color:#696d78; }
-body:not(.is-welcome) .inspector-empty { color:#696d78; }
 body:not(.is-welcome) .inspector .connections-list { border-color:#e3e4ea; }
 body:not(.is-welcome) .inspector .connection-row { color:#696d78; }
 body:not(.is-welcome) .inspector .guide-intro,body:not(.is-welcome) .inspector .guide-card,body:not(.is-welcome) .inspector .faq,body:not(.is-welcome) .inspector .export-settings,body:not(.is-welcome) .inspector .export-code { background:#fafafa; border-color:#e3e4e9; }
