@@ -314,3 +314,43 @@ body:not(.is-welcome) .inspector .validation-issue {
   border-color: #2f78d5;
   box-shadow: 0 0 0 2px #2f78d526;
 }
+
+
+/* Export language selector */
+.language-picker-control {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.language-picker-control:focus-within {
+  border-color: #7c8494;
+  box-shadow: 0 0 0 3px #1461ed1a;
+}
+.language-picker-control .language-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  min-width: 48px;
+  color: #4f596b;
+  background: #f5f6f8;
+  border-right: 1px solid var(--line);
+}
+.language-picker-control .language-icon .ui-icon {
+  display: block;
+  width: 23px;
+  height: 23px;
+}
+body:not(.is-welcome) .language-picker-control select {
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background-color: #fff;
+}
