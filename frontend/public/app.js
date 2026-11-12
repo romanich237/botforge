@@ -71,7 +71,7 @@ async function saveProject({ quiet = false } = {}) {
 }
 function field(parent, label, value, onChange, options) {
   const wrap = element('label', 'field'); wrap.append(element('span', '', label));
-  const input = options ? element('select') : element(label.includes('сообщения') || label.includes('ошибки') ? 'textarea' : 'input');
+  const input = options ? element('select') : element(label.includes('сообщения') || label.includes('ошибки') || label.includes('Заметка') ? 'textarea' : 'input');
   if (options) for (const [id, text] of options) { const o = element('option', '', text); o.value = id; input.append(o); }
   input.value = value ?? ''; input.oninput = () => { onChange(input.value); changed(); disposeCanvas?.refresh?.(); }; wrap.append(input); parent.append(wrap); return input;
 }
@@ -413,7 +413,7 @@ function renderProperties(n, target = main) {
   const panel = element('section', 'properties'); panel.append(element('h2', '', 'Свойства · ' + blockNames[n.type]), element('p', 'property-tip', blockTips[n.type])); const d = n.data;
   if (['text', 'buttons', 'input'].includes(n.type)) { const input = field(panel, 'Текст сообщения', d.text, v => { d.text = v; }); input.dataset.tour = 'message'; }
   field(panel, 'Заметка к блоку', d.note || '', v => { d.note = v; });
-  if (n.type === 'command') { field(panel, 'Команда', d.command, v => { d.command = v; }); field(panel, 'Описание для /help', d.description, v => { d.description = v; }); }
+  if (n.type === 'command') { field(panel, 'Команда', d.command, v => { d.command = v; }); field(panel, 'Описание для /help', d.description, v => { d.description = v; }); field(panel, 'Текстовый триггер', d.triggerText || '', v => { d.triggerText = v; }); field(panel, 'Совпадение', d.triggerMode || 'exact', v => { d.triggerMode = v; }, [['exact', 'Точное'], ['contains', 'Содержит']]); }
   if (['input', 'condition'].includes(n.type)) field(panel, 'Переменная', d.variable, v => { d.variable = v; }, [['', 'Выберите переменную'], ...draft.variables.map(v => [v.name, v.name])]);
   if (n.type === 'input') { field(panel, 'Проверка ввода', d.validation, v => { d.validation = v; }, [['text', 'Текст'], ['number', 'Число'], ['email', 'Email'], ['choice', 'Вариант из списка']]); field(panel, 'Варианты через запятую', d.choices, v => { d.choices = v; }); field(panel, 'Текст ошибки', d.error, v => { d.error = v; }); }
   if (n.type === 'condition') { field(panel, 'Операция', d.operation, v => { d.operation = v; }, [['eq', 'Равно'], ['ne', 'Не равно'], ['contains', 'Содержит'], ['gt', 'Больше'], ['lt', 'Меньше']]); field(panel, 'Значение', d.value, v => { d.value = v; }); }
