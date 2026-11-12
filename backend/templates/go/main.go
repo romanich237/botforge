@@ -122,7 +122,9 @@ func (s *BotSession) Idle() bool { s.mu.Lock(); defer s.mu.Unlock(); return !s.b
 func markup(event Event) map[string]any {
 	buttons, _ := event["buttons"].([]Choice)
 	rows := [][]map[string]any{}
-	for _, b := range buttons {
+	columns := 1
+	if c, ok := event["columns"].(int); ok && c >= 1 && c <= 4 { columns = c }
+	for i, b := range buttons {
 		choice := map[string]any{"text": b.Label}
 		if event["placement"] != "keyboard" {
 			if b.Action == "url" {
@@ -131,11 +133,12 @@ func markup(event Event) map[string]any {
 				choice["callback_data"] = b.Callback
 			}
 		}
-		rows = append(rows, []map[string]any{choice})
+		if i%columns == 0 { rows = append(rows, []map[string]any{}) }
+		rows[len(rows)-1] = append(rows[len(rows)-1], choice)
 	}
 	if len(buttons) > 0 {
 		if event["placement"] == "keyboard" {
-			return map[string]any{"keyboard": rows, "resize_keyboard": true}
+			return map[string]any{"keyboard": rows, "resize_keyboard": true, "one_time_keyboard": event["oneTime"] == true}
 		}
 		return map[string]any{"inline_keyboard": rows}
 	}
