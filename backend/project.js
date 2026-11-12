@@ -14,8 +14,10 @@ function checkShape(p) {
   for (const n of p.nodes) {
     if (!n || typeof n.id !== 'string' || !n.id || ids.has(n.id) || !types.includes(n.type) || !n.data || typeof n.data !== 'object' || Array.isArray(n.data) || !Number.isFinite(n.x) || !Number.isFinite(n.y)) return 'Некорректный блок или повтор ID';
     if (n.type === 'buttons' && (!Array.isArray(n.data.buttons) || n.data.buttons.some(b => !b || typeof b.id !== 'string' || typeof b.label !== 'string' || !['url', 'transition'].includes(b.action)) || new Set(n.data.buttons.map(b => b.id)).size !== n.data.buttons.length)) return 'Некорректный список кнопок';
+    if (n.data.note?.length > 2000) return 'Заметка не должна превышать 2000 символов';
+    if (n.type === 'command' && n.data.triggerText?.length > 200) return 'Триггер слишком длинный';
     if (n.type === 'input' && n.data.choices !== undefined && typeof n.data.choices !== 'string') return 'Некорректные варианты ввода';
-    for (const key of ['text', 'command', 'description', 'error', 'variable', 'value', 'operation', 'validation', 'placement']) if (n.data[key] !== undefined && typeof n.data[key] !== 'string') return 'Некорректное поле блока: ' + key;
+    for (const key of ['text', 'command', 'description', 'error', 'variable', 'value', 'operation', 'validation', 'placement', 'note', 'triggerText', 'triggerMode']) if (n.data[key] !== undefined && typeof n.data[key] !== 'string') return 'Некорректное поле блока: ' + key;
     ids.add(n.id);
   }
   const outputs = new Set(); const edgeIds = new Set();
@@ -50,6 +52,7 @@ function validate(p) {
       const command = p.behavior.ignoreCase ? d.command.toLowerCase() : d.command;
       if (!/^\/[a-zA-Z0-9_]{1,32}$/.test(command) || ['/start', '/help', '/cancel'].includes(command.toLowerCase()) || commands.has(command)) add('COMMAND', 'Неверная, системная или повторяющаяся команда', n.id, 'command');
       commands.add(command);
+      if (d.triggerText?.trim() && !['exact', 'contains'].includes(d.triggerMode || 'exact')) add('TRIGGER', 'Выберите режим текстового триггера', n.id, 'triggerMode');
     }
     if (n.type === 'input' || n.type === 'condition') if (!variables.has(d.variable)) add('VARIABLE', 'Выберите существующую переменную', n.id, 'variable');
     if (n.type === 'input' && !['text', 'number', 'email', 'choice'].includes(d.validation)) add('INPUT', 'Выберите проверку ввода', n.id, 'validation');
@@ -72,6 +75,12 @@ function validate(p) {
     for (const value of [d.text, d.error]) if (typeof value === 'string') for (const match of value.matchAll(/\{([^{}]+)\}/g)) if (!variables.has(match[1])) add('VARIABLE', 'Неизвестная переменная: ' + match[1], n.id, 'text');
     const outputs = n.type === 'condition' ? ['yes', 'no'] : n.type === 'buttons' ? (Array.isArray(d.buttons) ? d.buttons.filter(b => b?.action === 'transition').map(b => b.id) : []) : ['start', 'command', 'input'].includes(n.type) ? ['next'] : [];
     for (const output of outputs) if (!p.edges.some(e => e.source === n.id && e.output === output)) add('TRANSITION', 'Настройте переход: ' + output, n.id, 'transition');
+  }
+  const triggers = new Set();
+  for (const n of p.nodes.filter(n => n.type === 'command' && n.data.triggerText?.trim())) {
+    const key = (p.behavior.ignoreCase ? n.data.triggerText.toLowerCase() : n.data.triggerText).trim() + ':' + (n.data.triggerMode || 'exact');
+    if (triggers.has(key)) add('TRIGGER', 'Повторяющийся текстовый триггер', n.id, 'triggerText');
+    triggers.add(key);
   }
   const seen = new Set(); const todo = p.nodes.filter(n => ['start', 'command'].includes(n.type)).map(n => n.id);
   while (todo.length) { const id = todo.pop(); if (seen.has(id)) continue; seen.add(id); todo.push(...p.edges.filter(e => e.source === id).map(e => e.target)); }
