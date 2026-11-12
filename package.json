@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check backend/server.js && node --check backend/project.js && node --check frontend/public/app.js && node --check frontend/public/guide.js && node --check frontend/public/runtime.js && node --check frontend/public/preview.js && node --check backend/exporter.js && node --check backend/templates/bot.js && node --check frontend/public/languages.js && node --check backend/assistant.js && node --check frontend/public/layout.js && node --check frontend/public/ai.js && node --check backend/storage.js && node --check frontend/public/editor.js && node --check backend/ai-project.js && node --check backend/auth.js && node --check frontend/public/tour.js && node --check frontend/public/responsive.js",
+    "check": "node --check server.js && node --check backend/server.js && node --check backend/project.js && node --check frontend/public/app.js && node --check frontend/public/guide.js && node --check frontend/public/runtime.js && node --check frontend/public/preview.js && node --check backend/exporter.js && node --check backend/templates/bot.js && node --check frontend/public/languages.js && node --check backend/assistant.js && node --check frontend/public/layout.js && node --check frontend/public/ai.js && node --check backend/storage.js && node --check frontend/public/editor.js && node --check backend/ai-project.js && node --check backend/auth.js && node --check frontend/public/tour.js && node --check frontend/public/responsive.js && node --check frontend/public/clipboard.js",
     "test": "node --test",
     "build": "esbuild frontend/src/canvas.jsx --bundle --minify --outfile=frontend/public/canvas.js",
     "prestart": "npm run build"
