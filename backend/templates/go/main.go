@@ -254,6 +254,20 @@ func serve(api *API, project Project) error {
 				event = map[string]any{"callback": callback.Data}
 			}
 			session.Enqueue(func() {
+				if channel, ok := project.Behavior["subscriptionChat"].(string); ok && channel != "" {
+					member, err := api.Call("getChatMember", map[string]any{"chat_id": channel, "user_id": message.Chat.ID})
+					status, _ := member["status"].(string)
+					isMember, _ := member["is_member"].(bool)
+					if err != nil || !(status == "creator" || status == "administrator" || status == "member" || (status == "restricted" && isMember)) {
+						if err != nil { log.Print("Не удалось проверить подписку: ", err) }
+						if callback == nil {
+							messageText, _ := project.Behavior["subscriptionMessage"].(string)
+							if messageText == "" { messageText = "Подпишитесь на канал и повторите попытку." }
+							_, _ = api.Call("sendMessage", map[string]any{"chat_id": message.Chat.ID, "text": messageText})
+						}
+						return
+					}
+				}
 				if err := deliver(session, session.Engine.Handle(event, time.Now().UnixMilli()), api.Call); err != nil {
 					log.Print(err)
 				}
