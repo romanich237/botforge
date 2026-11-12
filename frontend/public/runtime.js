@@ -68,6 +68,9 @@
         if (command) target = command.id;
         else if (text.startsWith('/')) return b.unknownCommand ? [...events, this.message(b.unknownCommandText || 'Неизвестная команда. Введите /help')] : events;
         else {
+          const trigger = this.project.nodes.find(n => n.type === 'command' && n.data.triggerText?.trim() && ((b.ignoreCase ? text.toLowerCase() : text).trim() === (b.ignoreCase ? n.data.triggerText.toLowerCase() : n.data.triggerText).trim() || ((n.data.triggerMode || 'exact') === 'contains' && (b.ignoreCase ? text.toLowerCase() : text).includes((b.ignoreCase ? n.data.triggerText.toLowerCase() : n.data.triggerText).trim()))));
+          if (trigger) target = trigger.id;
+          else {
           const keyboard = Object.entries(this.menus).reverse().find(([, m]) => m.placement === 'keyboard' && m.buttons.some(c => c.label === text));
           if (keyboard) {
             const menu = keyboard[1], index = menu.buttons.findIndex(c => c.label === text);
@@ -80,6 +83,7 @@
             if (!ok || (variable.type === 'number' && !numeric)) return [...events, this.message(d.error || 'Проверьте введённое значение'), ...(b.repeatQuestion ? [this.message(d.text)] : [])];
             this.values[d.variable] = variable.type === 'number' ? Number(text) : text; target = this.next(node.id);
           } else return b.unknownText ? [...events, this.message(b.unknownTextMessage || 'Не понимаю. Введите /help')] : events;
+          }
         }
       }
       this.waiting = null; this.deadline = null;
