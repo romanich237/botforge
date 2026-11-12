@@ -11,13 +11,13 @@ const { createStorage } = require('./storage');
 function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, '..', 'data'), options = {}) {
   const assistant = createAssistant(options.ai);
   const publicOrigin = options.publicOrigin ?? process.env.PUBLIC_ORIGIN;
-  const files = { '/studio.css': ['studio.css', 'text/css; charset=utf-8'], '/icons.svg': ['icons.svg', 'image/svg+xml'], '/icons-LICENSE.txt': ['icons-LICENSE.txt', 'text/plain; charset=utf-8'], '/privacy': ['privacy.html', 'text/html; charset=utf-8'], '/tour.js': ['tour.js', 'text/javascript; charset=utf-8'], '/logo.png': ['logo.png', 'image/png'],
+  const files = { '/studio.css': ['studio.css', 'text/css; charset=utf-8'], '/icons.svg': ['icons.svg', 'image/svg+xml'], '/icons-LICENSE.txt': ['icons-LICENSE.txt', 'text/plain; charset=utf-8'], '/privacy': ['privacy.html', 'text/html; charset=utf-8'], '/tour.js': ['tour.js', 'text/javascript; charset=utf-8'], '/logo.webp': ['logo.webp', 'image/webp'],
     '/favicon.ico': ['favicon.ico', 'image/x-icon'],
-    '/favicon-16x16.png': ['favicon-16x16.png', 'image/png'],
-    '/favicon-32x32.png': ['favicon-32x32.png', 'image/png'],
-    '/apple-touch-icon.png': ['apple-touch-icon.png', 'image/png'],
-    '/icon-192.png': ['icon-192.png', 'image/png'],
-    '/icon-512.png': ['icon-512.png', 'image/png'],
+    '/favicon-16x16.webp': ['favicon-16x16.webp', 'image/webp'],
+    '/favicon-32x32.webp': ['favicon-32x32.webp', 'image/webp'],
+    '/apple-touch-icon.webp': ['apple-touch-icon.webp', 'image/webp'],
+    '/icon-192.webp': ['icon-192.webp', 'image/webp'],
+    '/icon-512.webp': ['icon-512.webp', 'image/webp'],
     '/site.webmanifest': ['site.webmanifest', 'application/manifest+json'],
     '/editor.js': ['editor.js', 'text/javascript; charset=utf-8'], '/': ['index.html', 'text/html; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/canvas.js': ['canvas.js', 'text/javascript; charset=utf-8'], '/canvas.css': ['canvas.css', 'text/css; charset=utf-8'], '/guide.js': ['guide.js', 'text/javascript; charset=utf-8'], '/runtime.js': ['runtime.js', 'text/javascript; charset=utf-8'], '/preview.js': ['preview.js', 'text/javascript; charset=utf-8'], '/languages.js': ['languages.js', 'text/javascript; charset=utf-8'], '/layout.js': ['layout.js', 'text/javascript; charset=utf-8'], '/ai.js': ['ai.js', 'text/javascript; charset=utf-8'] };
   const storage = createStorage(dataDir);
@@ -54,8 +54,12 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, '..
       if (id && action === 'ai' && req.method === 'POST') {
         storage.get(id, owner);
         if (!assistant.status().configured) return send(503, { message: 'ИИ пока не настроен' });
+        const balance = auth.credits(owner);
+        if (!balance.tokensRemaining) return send(402, { message: 'Кредиты ИИ закончились.' });
         auth.reserve(owner);
-        return send(200, await assistant.generate(body?.project, body?.prompt, { mode: body?.mode, selectedNodeId: body?.selectedNodeId }));
+        const result = await assistant.generate(body?.project, body?.prompt, { mode: body?.mode, selectedNodeId: body?.selectedNodeId, maxTokens: balance.tokensRemaining });
+        result.usage = { ...result.usage, ...auth.consumeTokens(owner, result.usage?.generatedTokens || 0) };
+        return send(200, result);
       }
       const run = async () => {
         if (!id && req.method === 'GET') {

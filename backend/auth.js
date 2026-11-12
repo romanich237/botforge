@@ -21,16 +21,21 @@ function createAuth(dataDir, config = {}) {
   const now = config.now ?? Date.now;
   const daily = Number(config.daily ?? process.env.AI_DAILY_LIMIT ?? (enabled ? 5 : 20));
   const globalDaily = Number(config.globalDaily ?? process.env.AI_GLOBAL_DAILY_LIMIT ?? 100);
-  if (![daily,globalDaily].every(n => Number.isSafeInteger(n) && n > 0)) throw Error('Лимиты ИИ должны быть положительными целыми числами');
+  const startingCredits = Number(config.startingCredits ?? process.env.AI_STARTING_CREDITS ?? 20);
+  const tokensPerCredit = 1000;
+  if (![daily,globalDaily,startingCredits].every(n => Number.isSafeInteger(n) && n > 0)) throw Error('Лимиты ИИ и стартовые кредиты должны быть положительными целыми числами');
   fs.mkdirSync(dataDir,{recursive:true,mode:0o700});
   const filename = path.join(dataDir,'auth.sqlite'), db = new Database(filename); fs.chmodSync(filename,0o600);
   db.pragma('journal_mode = WAL'); db.pragma('busy_timeout = 5000');
-  db.exec('CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS logins (state TEXT PRIMARY KEY, verifier TEXT NOT NULL, nonce TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS usage (day TEXT NOT NULL, owner TEXT NOT NULL, requests INTEGER NOT NULL, PRIMARY KEY(day,owner))');
+  db.exec('CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS logins (state TEXT PRIMARY KEY, verifier TEXT NOT NULL, nonce TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS usage (day TEXT NOT NULL, owner TEXT NOT NULL, requests INTEGER NOT NULL, PRIMARY KEY(day,owner)); CREATE TABLE IF NOT EXISTS ai_credits (owner TEXT PRIMARY KEY, tokens_remaining INTEGER NOT NULL CHECK(tokens_remaining >= 0))');
   const cookie = (name,value,seconds) => name+'='+value+'; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age='+seconds;
   const cookies = req => Object.fromEntries((req.headers.cookie || '').split(';').map(s => s.trim().split('=')));
   const clean = () => { db.prepare('DELETE FROM sessions WHERE expires < ?').run(now()); db.prepare('DELETE FROM logins WHERE expires < ?').run(now()); db.prepare('DELETE FROM usage WHERE day < ?').run(new Date(now()-7*86400000).toISOString().slice(0,10)); };
   function user(req) { if (!enabled) return {id:'legacy',name:'Рабочее пространство'}; const value=cookies(req)['__Host-bf-session']; if (!value || value.length > 100) return null; const row=db.prepare('SELECT user FROM sessions WHERE token=? AND expires>?').get(hash(value),now()); return row ? JSON.parse(row.user) : null; }
-  function quota(owner) { const day=new Date(now()).toISOString().slice(0,10); const used=db.prepare('SELECT requests FROM usage WHERE day=? AND owner=?').get(day,owner)?.requests || 0; const total=db.prepare('SELECT COALESCE(SUM(requests),0) n FROM usage WHERE day=?').get(day).n; return {limit:daily,remaining:Math.max(0,Math.min(daily-used,globalDaily-total)),resetAt:new Date(Date.parse(day)+86400000).toISOString()}; }
+  const ensureCredits = db.prepare('INSERT INTO ai_credits(owner,tokens_remaining) VALUES(?,?) ON CONFLICT(owner) DO NOTHING');
+  function credits(owner) { ensureCredits.run(owner, startingCredits * tokensPerCredit); const tokensRemaining=db.prepare('SELECT tokens_remaining FROM ai_credits WHERE owner=?').get(owner).tokens_remaining; return { credits: tokensRemaining / tokensPerCredit, tokensRemaining, tokensPerCredit }; }
+  function consumeTokens(owner, tokens) { if (!Number.isSafeInteger(tokens) || tokens < 0) throw Error('Некорректное списание токенов'); ensureCredits.run(owner, startingCredits * tokensPerCredit); db.prepare('UPDATE ai_credits SET tokens_remaining=MAX(0,tokens_remaining-?) WHERE owner=?').run(tokens,owner); return credits(owner); }
+  function quota(owner) { const day=new Date(now()).toISOString().slice(0,10); const used=db.prepare('SELECT requests FROM usage WHERE day=? AND owner=?').get(day,owner)?.requests || 0; const total=db.prepare('SELECT COALESCE(SUM(requests),0) n FROM usage WHERE day=?').get(day).n; return {limit:daily,remaining:Math.max(0,Math.min(daily-used,globalDaily-total)),resetAt:new Date(Date.parse(day)+86400000).toISOString(),...credits(owner)}; }
   const reserve = db.transaction(owner => { clean(); const q=quota(owner); if (!q.remaining) throw fail(429,'Лимит ИИ на сегодня исчерпан. Запросы обновятся в 00:00 UTC.'); db.prepare('INSERT INTO usage(day,owner,requests) VALUES(?,?,1) ON CONFLICT(day,owner) DO UPDATE SET requests=requests+1').run(new Date(now()).toISOString().slice(0,10),owner); });
   const attempts = new Map();
   function rate(req) { const key=req.socket.remoteAddress, time=now(); for(const[k,v]of attempts)if(v.until<time)attempts.delete(k); const record=attempts.get(key)||{count:0,until:time+60000}; if(attempts.size>1000 || ++record.count>20)throw fail(429,'Слишком много попыток входа. Подождите минуту.'); attempts.set(key,record); }
@@ -63,7 +68,7 @@ function createAuth(dataDir, config = {}) {
     }
     throw fail(404,'Не найдено');
   }
-  return {enabled,user,handle,quota,acceptsOrigin:value=>origins.has(value),reserve:owner=>reserve.immediate(owner),close:()=>db.close()};
+  return {enabled,user,handle,quota,credits,consumeTokens,acceptsOrigin:value=>origins.has(value),reserve:owner=>reserve.immediate(owner),close:()=>db.close()};
 }
 function hashChallenge(value) { return createHash('sha256').update(value).digest('base64url'); }
 module.exports={createAuth};

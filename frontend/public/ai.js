@@ -24,9 +24,9 @@ function openAssistant() {
 }
 function refreshAIStatus() {
   const provider = document.querySelector('#ai-provider');
-  if (provider) provider.textContent = aiBusy ? 'ИИ обрабатывает запрос. Это может занять до 3 минут; текущая схема пока не меняется.' : !aiProvider ? 'Проверяем доступность модели…' : aiProvider.failed ? 'Не удалось проверить ИИ. Закройте и откройте помощника для повтора.' : aiProvider.configured ? 'Модель: ' + aiProvider.model + ' · ' + aiProvider.provider + (aiProvider.quota ? ' · Осталось сегодня: ' + aiProvider.quota.remaining + '/' + aiProvider.quota.limit : '') : 'ИИ не настроен на сервере. Раскладка доступна без ИИ.';
+  if (provider) provider.textContent = aiBusy ? 'ИИ обрабатывает запрос. Это может занять до 3 минут; текущая схема пока не меняется.' : !aiProvider ? 'Проверяем доступность модели…' : aiProvider.failed ? 'Не удалось проверить ИИ. Закройте и откройте помощника для повтора.' : aiProvider.configured ? 'Модель: ' + aiProvider.model + ' · ' + aiProvider.provider + (aiProvider.quota ? ' · Баланс: ' + Number(aiProvider.quota.credits).toFixed(1).replace('.0', '') + ' кредитов (' + aiProvider.quota.tokensRemaining.toLocaleString('ru-RU') + ' токенов) · Запросов сегодня: ' + aiProvider.quota.remaining + '/' + aiProvider.quota.limit : '') : 'ИИ не настроен на сервере. Раскладка доступна без ИИ.';
   const notice = document.querySelector('.ai-provider-notice'); if (notice) notice.textContent = 'Описание и схема отправляются подключённому ИИ-провайдеру (' + (aiProvider?.provider || 'проверяем адрес') + '). Не указывайте пароли и личные данные. Запрос расходует дневной лимит и баланс API; при ошибке схемы возможна одна попытка исправления.';
-  const submit = document.querySelector('#ai-submit'); if (submit) submit.disabled = aiBusy || !aiProvider?.configured || aiProvider?.quota?.remaining === 0;
+  const submit = document.querySelector('#ai-submit'); if (submit) submit.disabled = aiBusy || !aiProvider?.configured || aiProvider?.quota?.remaining === 0 || aiProvider?.quota?.tokensRemaining === 0;
 }
 function renderAIChanges(parent) {
   const changed = aiResult.changes;
