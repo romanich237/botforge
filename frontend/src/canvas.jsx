@@ -28,7 +28,7 @@ window.BotForgeCanvas = {
     function Canvas() {
       const [flow, setFlow] = useState(null);
       const initialSelection = callbacks.selectionState?.() || { nodes: [], edges: [] };
-      const [nodes, setNodes] = useState(project.nodes.map(n => ({ id: n.id, type: 'scenario', position: { x: n.x, y: n.y }, selected: initialSelection.nodes.includes(n.id) || n.id === callbacks.selected, data: { title: names[n.type], active: callbacks.current?.() === n.id, type: n.type, text: n.data.text || n.data.command, outputs: outputs(n) } })));
+      const [nodes, setNodes] = useState(project.nodes.map(n => ({ id: n.id, type: 'scenario', position: { x: n.x, y: n.y }, selected: initialSelection.nodes.includes(n.id) || n.id === callbacks.selected, data: { title: names[n.type], active: callbacks.current?.() === n.id, type: n.type, text: n.data.text || n.data.command || n.data.note, outputs: outputs(n) } })));
       const [edges, setEdges] = useState(project.edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.output, selected: initialSelection.edges.includes(e.id), type: 'smoothstep', markerEnd: { type: MarkerType.ArrowClosed }, style: { strokeWidth: 2 } })));
       refresh = () => {
         setNodes(current => current.map(node => { const n = project.nodes.find(n => n.id === node.id); return n ? { ...node, data: { title: names[n.type], active: callbacks.current?.() === n.id, type: n.type, text: n.data.text || n.data.command, outputs: outputs(n) } } : node; }));
@@ -43,6 +43,7 @@ window.BotForgeCanvas = {
         edgesReconnectable reconnectRadius={18}
         onReconnect={(edge, connection) => callbacks.reconnect(edge, connection)}
         onNodeClick={(event, node) => { if (!event.shiftKey) callbacks.select(node.id); }}
+        onNodeContextMenu={(event, node) => { event.preventDefault(); callbacks.contextNode?.(node.id, event.clientX, event.clientY); }}
         onPaneClick={() => callbacks.select(null)}
         onSelectionChange={({ nodes: selectedNodes, edges: selectedEdges }) => callbacks.selection?.(selectedNodes.map(node => node.id), selectedEdges.map(edge => edge.id))}
         onMoveEnd={(_, next) => callbacks.viewport(next)}
