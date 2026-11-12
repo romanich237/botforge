@@ -25,7 +25,7 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, 'da
   const server = http.createServer(async (req, res) => {
     const send = (status, body) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(body)); };
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'");
+    res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css; script-src 'self'; object-src 'none'; frame-ancestors 'none'");
     try {
       const url = new URL(req.url, 'http://localhost');
       if (await auth.handle(req, res, url)) return;

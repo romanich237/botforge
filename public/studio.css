@@ -123,3 +123,18 @@ body:not(.is-welcome) #mobile-menu { background:#fafafa; color:#33353d; }
 body:not(.is-welcome) #mobile-menu nav a { color:#737784; }
 body:not(.is-welcome) #mobile-menu nav a.active { background:#e9ebef; color:#353b49; }
 body:not(.is-welcome) #mobile-menu #close-mobile-menu { color:#5b6376; background:white; border-color:#dde2ec; }
+
+.project-column, .project-card .card-top > div { min-width: 0; }
+.project-column > .project-card { height: 100%; display: flex; flex-direction: column; }
+.project-card h2 { overflow-wrap: anywhere; }
+.project-card .card-actions { margin-top: auto; flex-wrap: wrap; }
+.platform-tag .ui-icon { width: 15px; height: 15px; flex: 0 0 15px; }
+.welcome-icon .ui-icon { width: 24px; height: 24px; }
+@media (max-width: 767.98px) {
+  .toolbar { flex-wrap: wrap; }
+  .toolbar input[type="search"] { flex: 1 0 100%; width: 100%; min-width: 0; }
+  .project-card .card-actions button { min-height: 44px; }
+}
+@media (max-width: 375px) {
+  .project-card .card-actions .open { flex-basis: 100%; }
+}

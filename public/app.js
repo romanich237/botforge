@@ -14,6 +14,11 @@ function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.classList.add('ui-icon'); svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '1.8'); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
   const use = document.createElementNS('http://www.w3.org/2000/svg', 'use'); use.setAttribute('href', '/icons.svg#' + name); svg.append(use); return svg;
 }
+function platformTag() {
+  const tag = element('span', 'platform-tag', 'Telegram');
+  tag.prepend(icon('telegram'));
+  return tag;
+}
 function button(text, action, cls = '') { const marks = { '✦':'sparkles', '⤢':'layout-grid', '↶':'undo-2', '▷':'play', '↓':'download', '✓':'check', '↖':'mouse-pointer-2', '＋':'plus', '+':'plus', '?':'circle-help', '×':'x', '↻':'rotate-ccw', '↑':'arrow-up' }; const mark = marks[text[0]]; const b = element('button', cls, mark ? text.slice(1).trim() : text); if (mark) { b.prepend(icon(mark)); b.classList.add('with-icon'); if (!text.slice(1).trim()) b.setAttribute('aria-label', text === '×' ? 'Закрыть' : text === '↻' ? 'Перезапустить' : text); } b.type = 'button'; b.onclick = () => Promise.resolve().then(action).catch(e => notify(e.message)); return b; }
 function notify(message) { const t = document.querySelector('#toast'); t.textContent = message; t.hidden = false; clearTimeout(notify.timer); notify.timer = setTimeout(() => { t.hidden = true; }, 6000); }
 async function api(url, method = 'GET', body) { const r = await fetch('/api/projects' + url, { method, headers: body === undefined ? {} : { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const data = await r.json(); if (!r.ok) throw Error(data.message || 'Ошибка запроса'); return data; }
@@ -44,21 +49,21 @@ function renderProjects() {
   projectActions.append(button('+ Создать бота', () => { document.querySelector('#create-form').reset(); dialog.showModal(); }, 'primary'));
   if (loading) return main.append(element('section', 'empty', 'Загружаем проекты…'));
   if (loadError) { const p = element('section', 'empty'); p.append(element('p', '', loadError), button('Повторить загрузку', reload)); return main.append(p); }
-  const toolbar = element('div', 'toolbar'); const search = element('input'); search.type = 'search'; search.placeholder = 'Поиск по проектам…'; search.setAttribute('aria-label', 'Поиск по проектам'); toolbar.append(search, element('span', 'platform-tag', '↗ Telegram'), element('span', 'muted', projects.length + ' проектов')); main.append(toolbar);
+  const toolbar = element('div', 'toolbar'); const search = element('input'); search.type = 'search'; search.placeholder = 'Поиск по проектам…'; search.setAttribute('aria-label', 'Поиск по проектам'); toolbar.append(search, platformTag(), element('span', 'muted', projects.length + ' проектов')); main.append(toolbar);
   if (!sessionStorage.getItem('botforge.welcome.hidden')) { const welcome = element('section', 'welcome-banner'); const content = element('div'); content.append(element('span', 'eyebrow', 'ОБУЧЕНИЕ'), element('h2', '', 'Первый проект в BotForge'), element('p', '', 'Разберитесь с блоками, связями и предпросмотром на учебном примере.')); const actions = element('div', 'welcome-actions'); actions.append(button('Пройти обучение', openGuide, 'primary'), button('Открыть учебный пример', createExample), button('Скрыть', () => { sessionStorage.setItem('botforge.welcome.hidden', 'true'); render(); }, 'text-button')); welcome.append(content, actions); main.append(welcome); }
-  const grid = element('div', 'project-grid'); main.append(grid);
+  const grid = element('div', 'project-grid row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 d-flex gap-0'); main.append(grid);
   function update() {
     grid.replaceChildren();
     for (const project of projects.filter(p => p.name.toLocaleLowerCase().includes(search.value.toLocaleLowerCase()))) {
-      const card = element('article', 'project-card'); const top = element('div', 'card-top'); const title = element('div'); title.append(element('h2', '', project.name), element('span', 'platform-tag', '↗ Telegram')); const projectIcon = element('div', 'project-icon'); projectIcon.append(icon('workflow')); top.append(projectIcon, title);
+      const card = element('article', 'project-card'); const top = element('div', 'card-top'); const title = element('div'); title.append(element('h2', '', project.name), platformTag()); const projectIcon = element('div', 'project-icon'); projectIcon.append(icon('workflow')); top.append(projectIcon, title);
       const thumbnail = element('div', 'project-thumbnail'); thumbnail.setAttribute('aria-hidden', 'true');
       for (const node of project.nodes.slice(0, 3)) { const box = element('span', 'project-mini-node', blockNames[node.type]); thumbnail.append(box); }
       if (!project.nodes.length) thumbnail.append(element('span', 'project-thumbnail-empty', 'Пустой сценарий'));
       card.append(thumbnail, top, element('p', 'muted', project.nodes.length + ' блоков · ' + new Date(project.updatedAt).toLocaleString('ru-RU')));
-      const actions = element('div', 'card-actions'); actions.append(button('Открыть →', () => openProject(project.id), 'open'), button('Копия', async () => { await api('/' + project.id + '/duplicate', 'POST', {}); await reload(); }));
-      const remove = button('×', async () => { if (confirm('Удалить проект «' + project.name + '»?')) { await api('/' + project.id, 'DELETE'); if (selectedId === project.id) { draft = null; selectedId = null; dirty = false; sessionStorage.removeItem('botforge.selected'); } await reload(); } }, 'icon-button'); remove.setAttribute('aria-label', 'Удалить ' + project.name); actions.append(remove); card.append(actions); grid.append(card);
+      const actions = element('div', 'card-actions'); actions.append(button('Открыть', () => openProject(project.id), 'open'), button('Копия', async () => { await api('/' + project.id + '/duplicate', 'POST', {}); await reload(); }));
+      const remove = button('×', async () => { if (confirm('Удалить проект «' + project.name + '»?')) { await api('/' + project.id, 'DELETE'); if (selectedId === project.id) { draft = null; selectedId = null; dirty = false; sessionStorage.removeItem('botforge.selected'); } await reload(); } }, 'icon-button'); remove.setAttribute('aria-label', 'Удалить ' + project.name); actions.append(remove); card.append(actions); const column = element('div', 'project-column'); column.append(card); grid.append(column);
     }
-    if (!grid.children.length) grid.append(element('section', 'empty', projects.length ? 'Ничего не найдено. Измените запрос.' : 'Создайте первого бота — начните с пустого проекта.'));
+    if (!grid.children.length) grid.append(element('section', 'empty w-100', projects.length ? 'Ничего не найдено. Измените запрос.' : 'Создайте первого бота — начните с пустого проекта.'));
   }
   search.oninput = update; update();
   if (localStorage.getItem(storageKey)) main.append(button('Перенести старые проекты из браузера', async () => {
@@ -100,7 +105,9 @@ function renderGuideStep() {
 }
 function renderGuide(target = main) {
   const h = heading('Как пользоваться BotForge', 'Короткий путь от пустого проекта до связанного сценария.', target); h.append(button('Пошаговое обучение', openGuide, 'primary'));
-  const intro = element('section', 'guide-intro'); intro.append(element('div', 'welcome-icon', '↗'), element('h2', '', 'Попробуйте на готовом примере'), element('p', '', 'Четыре блока, две кнопки и готовые связи. Пример создаётся отдельным проектом — ваши сценарии сохранятся.'), button('Создать учебный проект', createExample, 'primary')); target.append(intro);
+  const intro = element('section', 'guide-intro');
+  const introIcon = element('div', 'welcome-icon'); introIcon.append(icon('workflow'));
+  intro.append(introIcon, element('h2', '', 'Попробуйте на готовом примере'), element('p', '', 'Четыре блока, две кнопки и готовые связи. Пример создаётся отдельным проектом — ваши сценарии сохранятся.'), button('Создать учебный проект', createExample, 'primary')); target.append(intro);
   const list = element('div', 'guide-grid'); window.BotForgeGuide.steps.forEach((step, i) => { const card = element('article', 'guide-card'); card.append(element('span', 'guide-index', String(i + 1).padStart(2, '0')), element('h2', '', step.title), element('p', '', step.text)); list.append(card); }); target.append(list);
   const faq = element('section', 'faq'); faq.append(element('h2', '', 'Частые вопросы'));
   for (const [q, a] of [
