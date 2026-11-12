@@ -29,6 +29,8 @@ type NodeData struct {
 	Operation   string   `json:"operation"`
 	Value       string   `json:"value"`
 	Placement   string   `json:"placement"`
+	Columns     int      `json:"columns"`
+	OneTime     bool     `json:"oneTime"`
 	Buttons     []Button `json:"buttons"`
 }
 type Node struct {
@@ -210,7 +212,9 @@ func (s *Session) message(text string, node *Node) Event {
 		s.Menus[token] = Menu{node.ID, buttons, placement}
 		s.MenuOrder = append(s.MenuOrder, token)
 	}
-	return Event{"type": "message", "text": s.text(text), "buttons": buttons, "token": token, "placement": placement}
+	columns, oneTime := 1, false
+	if node != nil { if node.Data.Columns > 0 { columns = node.Data.Columns }; oneTime = node.Data.OneTime }
+	return Event{"type": "message", "text": s.text(text), "buttons": buttons, "token": token, "placement": placement, "columns": columns, "oneTime": oneTime}
 }
 func (s *Session) run(id string, now int64) []Event {
 	events := []Event{}
