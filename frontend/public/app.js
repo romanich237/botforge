@@ -518,6 +518,26 @@ function renderBehavior(target = main) {
   if (draft.behavior.rateLimit) { field(panel, 'Количество сообщений', draft.behavior.rateCount ?? 5, v => { draft.behavior.rateCount = Number(v); }); field(panel, 'Интервал, секунд', draft.behavior.rateSeconds ?? 10, v => { draft.behavior.rateSeconds = Number(v); }); }
   field(panel, 'Ответ на неизвестную команду', draft.behavior.unknownCommandText, v => { draft.behavior.unknownCommandText = v; }); field(panel, 'Ответ на непонятный текст', draft.behavior.unknownTextMessage, v => { draft.behavior.unknownTextMessage = v; }); target.append(panel);
 }
+function showEmailAuth() {
+  const dialog = document.createElement('dialog'); dialog.className = 'email-auth-dialog';
+  let register = false;
+  const draw = () => {
+    dialog.replaceChildren();
+    const form = document.createElement('form'); form.className = 'email-auth-form'; form.method = 'dialog';
+    const heading = element('h2','',register ? 'Регистрация' : 'Вход в BotForge');
+    const info = element('p','muted','Используйте почту и пароль. Подтверждение почты не требуется.');
+    const email = document.createElement('input'); email.type='email'; email.name='email'; email.placeholder='Электронная почта'; email.autocomplete='email'; email.required=true; email.maxLength=254;
+    const password = document.createElement('input'); password.type='password'; password.name='password'; password.placeholder='Пароль (от 10 символов)'; password.autocomplete=register?'new-password':'current-password'; password.required=true; password.minLength=10;
+    const message = element('p','ai-error',''); message.setAttribute('role','alert');
+    const submit = document.createElement('button'); submit.type='submit'; submit.className='primary'; submit.textContent=register?'Создать аккаунт':'Войти';
+    const toggle = button(register?'Уже есть аккаунт? Войти':'Нет аккаунта? Зарегистрироваться',()=>{register=!register;draw();},'text-button');
+    const cancel = button('Закрыть',()=>dialog.close(),'text-button');
+    form.append(heading,info,email,password,message,submit,toggle,cancel);
+    form.addEventListener('submit',async event=>{event.preventDefault(); submit.disabled=true; message.textContent=''; try { const response=await fetch(register?'/auth/register':'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.value,password:password.value})}); const data=await response.json(); if(!response.ok)throw Error(data.message||'Не удалось войти'); location.href='/#projects'; location.reload(); } catch(e){message.textContent=e.message;submit.disabled=false;} });
+    dialog.append(form); email.focus();
+  };
+  dialog.addEventListener('close',()=>dialog.remove()); document.body.append(dialog); draw(); dialog.showModal();
+}
 function renderWelcome() {
   document.title = 'BotForge · Конструктор Telegram-ботов';
   const link = (label, href, className) => { const a = element('a', className || '', label); a.href = href; return a; };
@@ -525,12 +545,12 @@ function renderWelcome() {
   const brand = link('', '/', 'welcome-brand'); const logo = element('img'); logo.src = '/logo.webp'; logo.alt = 'Логотип BotForge'; brand.append(logo, document.createTextNode('BotForge'));
   const nav = element('nav', 'landing-nav'); nav.setAttribute('aria-label', 'Навигация по странице');
   nav.append(link('Возможности', '#features'), link('Как работает', '#workflow'), link('Вопросы', '#faq'));
-  header.append(brand, nav, link('Войти', '/auth/google', 'button welcome-signin')); main.append(header);
+  header.append(brand, nav, button('Войти', showEmailAuth, 'button welcome-signin')); main.append(header);
   const hero = element('section', 'welcome-hero landing-hero');
   const copy = element('div', 'welcome-copy');
   copy.append(element('span', 'welcome-tag', 'BOTFORGE / ВИЗУАЛЬНАЯ РАЗРАБОТКА'), element('h1', '', 'Создавайте Telegram-ботов без сложного кода'), element('p', 'welcome-lead', 'Собирайте сценарии из блоков, настраивайте кнопки и условия, проверяйте диалоги и получайте исходный код готового проекта.'));
-  const access = element('div', 'welcome-access'); access.append(link('Начать работу', '/auth/google', 'button welcome-google'), link('Посмотреть возможности', '#features', 'landing-secondary'));
-  copy.append(access, element('p', 'welcome-login-note', 'Вход через Google. Проекты сохраняются в вашем рабочем пространстве.'));
+  const access = element('div', 'welcome-access'); access.append(button('Начать работу', showEmailAuth, 'button welcome-google'), link('Посмотреть возможности', '#features', 'landing-secondary'));
+  copy.append(access, element('p', 'welcome-login-note', 'Вход по почте и паролю. Подтверждение почты не требуется.'));
   hero.append(copy);
   const preview = element('section', 'welcome-preview'); preview.setAttribute('aria-label', 'Схематичный пример интерфейса редактора');
   const bar = element('div', 'welcome-preview-bar'); bar.append(element('span', '', 'Пример сценария · Запись на консультацию'), element('span', 'welcome-preview-badge', 'ВИЗУАЛЬНЫЙ РЕДАКТОР')); preview.append(bar);
@@ -566,7 +586,7 @@ function renderWelcome() {
   const steps=element('div','welcome-steps'); for (const [number,title,description] of [['01','Создайте проект','Войдите и откройте новый сценарий в редакторе.'],['02','Соберите и проверьте','Настройте блоки, связи и пройдите диалог в предпросмотре.'],['03','Скачайте исходники','Экспортируйте проект и запустите бота со своим Telegram-токеном.']]) { const card=element('article'); card.append(element('span','welcome-step-number',number),element('h3','',title),element('p','',description)); steps.append(card); } workflow.append(steps); main.append(workflow);
   const faq = element('section','landing-section landing-faq'); faq.id='faq'; faq.append(element('span','welcome-tag','ВОПРОСЫ'),element('h2','landing-section-title','Что важно знать'));
   for (const [question,answer] of [['Нужно ли программировать?','Для создания сценария код не требуется. Для самостоятельного запуска экспортированного бота понадобится среда выполнения и Telegram-токен.'],['Можно ли проверить сценарий до запуска?','Да. Встроенный предпросмотр позволяет проверить диалог и переходы. Проверка подписки через Telegram работает только в запущенном боте.'],['На каких языках доступен экспорт?','JavaScript, TypeScript, Python и Go.'],['Как работает ИИ?','ИИ помогает создавать и редактировать сценарии. Результат можно проверить перед применением.']]) { const item=element('details','landing-question'); item.append(element('summary','',question),element('p','',answer)); faq.append(item); } main.append(faq);
-  const cta=element('section','landing-cta'); cta.append(element('h2','','Начните с простого сценария'),element('p','','Соберите первую цепочку сообщений, проверьте её и скачайте код.'),link('Открыть BotForge','/auth/google','button welcome-google')); main.append(cta);
+  const cta=element('section','landing-cta'); cta.append(element('h2','','Начните с простого сценария'),element('p','','Соберите первую цепочку сообщений, проверьте её и скачайте код.'),button('Открыть BotForge',showEmailAuth,'button welcome-google')); main.append(cta);
   const footer=element('footer','welcome-bottom'); footer.append(element('span','','© BotForge · Конструктор Telegram-ботов'),link('Конфиденциальность','/privacy'),element('span','','Для входа используется Google.')); main.append(footer);
 
 }
@@ -651,4 +671,4 @@ window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); 
 window.addEventListener('hashchange', render);
 window.matchMedia('(max-width: 650px)').addEventListener('change', () => { canvasViewport = null; render(); });
 render();
-(async () => { try { const r = await fetch('/auth/status'); if (!r.ok) throw Error('Не удалось проверить вход'); account = await r.json(); const b = button(account.enabled ? (account.user ? account.user.name + ' · Выйти' : 'Войти с Google') : 'Google · скоро', async () => { if (!account.enabled) return notify('Google-вход подготовлен. Осталось добавить данные приложения Google Cloud на сервер.'); if (account.user) { if (!leave()) return; const r = await fetch('/auth/logout', {method:'POST'}); if (!r.ok) throw Error('Не удалось выйти'); location.reload(); } else location.href = '/auth/google'; }, 'account-button'); document.querySelector('.topbar').append(b); } catch(e) { accountError = e.message; loading = false; render(); return; } if (account.enabled && !account.user) { loading = false; render(); return; } await reload(); })();
+(async () => { try { const r = await fetch('/auth/status'); if (!r.ok) throw Error('Не удалось проверить вход'); account = await r.json(); const b = button(account.user ? account.user.name + ' · Выйти' : 'Войти', async () => { if (account.user) { if (!leave()) return; const r = await fetch('/auth/logout', {method:'POST'}); if (!r.ok) throw Error('Не удалось выйти'); location.reload(); } else showEmailAuth(); }, 'account-button'); document.querySelector('.topbar').append(b); } catch(e) { accountError = e.message; loading = false; render(); return; } if (account.enabled && !account.user) { loading = false; render(); return; } await reload(); })();
