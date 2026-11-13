@@ -332,6 +332,7 @@ function renderWorkspacePanel(page, target) {
 }
 function renderBuilder(page = 'builder') {
   const h = heading('Сценарий бота', 'Telegram · Добавьте блоки, соедините и сохраните');
+  h.append(button('▷ Предпросмотр', () => openWorkspace('testing', 'test'), 'graphite-preview'));
   const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), button('↶ Отменить', undoEditor), button('Повторить', redoEditor), button('Копировать', copySelectedBlocks), button('Вставить', pasteCopiedBlocks), button('⌫ Удалить', () => { if (!deleteSelection()) notify('Сначала выделите блок или линию.'); }, 'delete-selection-button'), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { openWorkspace('testing', 'test'); }), button('↓ Полный ZIP', downloadProjectBundle), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions); for (const b of actions.children) { if (b.textContent === 'Сохранить') b.dataset.tour = 'save'; if (b.textContent.includes('Предпросмотр')) b.dataset.tour = 'preview'; }
   renderBlockSearch();
   const mobileTabs = element('div', 'editor-tabs'); mobileTabs.setAttribute('role', 'group'); mobileTabs.setAttribute('aria-label', 'Панели конструктора');
@@ -529,7 +530,13 @@ function render() {
   return renderBuilder(page);
 }
 const mobileMenu = document.querySelector('#mobile-menu');
-mobileMenu.append(document.querySelector('nav').cloneNode(true));
+const drawerNavigation = document.querySelector('nav').cloneNode(true);
+const scenarioSettings = element('details', 'drawer-settings'); scenarioSettings.append(element('summary', '', 'Настройки сценария'));
+for (const link of [...drawerNavigation.children]) {
+  if (['behavior','variables','guide'].includes(link.dataset.page)) scenarioSettings.append(link);
+  if (link.dataset.page === 'testing') link.remove();
+}
+drawerNavigation.append(scenarioSettings); mobileMenu.append(drawerNavigation);
 const workspaceMenuButton = document.querySelector('#open-mobile-menu');
 workspaceMenuButton.replaceChildren(icon('list'), document.createTextNode('Меню'));
 document.querySelector('.sidebar').insertBefore(workspaceMenuButton, document.querySelector('.sidebar nav'));
@@ -537,8 +544,16 @@ workspaceMenuButton.onclick = () => {
   mobileMenu.querySelector('.workspace-menu-actions')?.remove();
   const actions = document.querySelector('.editor-actions');
   if (actions) {
-    const section = element('section', 'workspace-menu-actions'); section.append(element('h3', '', 'Действия со схемой'));
-    for (const original of actions.querySelectorAll('button')) { const item = button('', () => { mobileMenu.close(); return original.onclick(); }); item.append(...[...original.childNodes].map(node => node.cloneNode(true))); item.disabled = original.disabled; section.append(item); }
+    const section = element('section', 'workspace-menu-actions');
+    const tools = element('details', 'workspace-extra-tools'); tools.append(element('summary', '', 'Инструменты схемы'));
+    for (const original of actions.querySelectorAll('button')) {
+      const label = original.textContent.trim();
+      if (label === 'Сохранить' || label === 'Предпросмотр' || label.includes('Удалить') || label === 'Копировать' || label === 'Вставить') continue;
+      if (label === 'Отменить' && !editHistory.canUndo() || label === 'Повторить' && !editHistory.canRedo()) continue;
+      const item = button('', () => { mobileMenu.close(); return original.onclick(); }); item.append(...[...original.childNodes].map(node => node.cloneNode(true))); item.disabled = original.disabled;
+      if (label === 'ИИ' || label === 'Отменить' || label === 'Повторить') section.append(item); else tools.append(item);
+    }
+    if (tools.children.length > 1) section.append(tools);
     mobileMenu.insertBefore(section, mobileMenu.querySelector('nav'));
   }
   mobileMenu.showModal();

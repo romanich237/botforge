@@ -11,7 +11,7 @@ const { createStorage } = require('./storage');
 function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, '..', 'data'), options = {}) {
   const assistant = createAssistant(options.ai);
   const publicOrigin = options.publicOrigin ?? process.env.PUBLIC_ORIGIN;
-  const files = { '/studio.css': ['studio.css', 'text/css; charset=utf-8'], '/icons.svg': ['icons.svg', 'image/svg+xml'], '/icons-LICENSE.txt': ['icons-LICENSE.txt', 'text/plain; charset=utf-8'], '/privacy': ['privacy.html', 'text/html; charset=utf-8'], '/tour.js': ['tour.js', 'text/javascript; charset=utf-8'], '/logo.webp': ['logo.webp', 'image/webp'],
+  const files = { '/bootstrap.min.css': ['bootstrap.min.css', 'text/css; charset=utf-8'], '/graphite.css': ['graphite.css', 'text/css; charset=utf-8'], '/studio.css': ['studio.css', 'text/css; charset=utf-8'], '/icons.svg': ['icons.svg', 'image/svg+xml'], '/icons-LICENSE.txt': ['icons-LICENSE.txt', 'text/plain; charset=utf-8'], '/privacy': ['privacy.html', 'text/html; charset=utf-8'], '/tour.js': ['tour.js', 'text/javascript; charset=utf-8'], '/logo.webp': ['logo.webp', 'image/webp'],
     '/favicon.ico': ['favicon.ico', 'image/x-icon'],
     '/favicon-16x16.webp': ['favicon-16x16.webp', 'image/webp'],
     '/favicon-32x32.webp': ['favicon-32x32.webp', 'image/webp'],
@@ -25,7 +25,7 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, '..
   const server = http.createServer(async (req, res) => {
     const send = (status, body) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(body)); };
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css; script-src 'self'; object-src 'none'; frame-ancestors 'none'");
+    res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'");
     try {
       const url = new URL(req.url, 'http://localhost');
       if (await auth.handle(req, res, url)) return;
