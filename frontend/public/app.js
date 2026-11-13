@@ -192,7 +192,7 @@ function renderGuide(target = main) {
   const faq = element('section', 'faq'); faq.append(element('h2', '', 'Частые вопросы'));
   for (const [q, a] of [
     ['Как соединить блоки на телефоне?', 'Откройте вкладку «Схема», выберите блок и перейдите к его свойствам. В поле «Переход» выберите целевой блок. Для каждой кнопки доступен отдельный переход.'],
-    ['Как переместить или удалить связь?', 'Потяните конец существующей линии к другому входу или свободному выходу. Отпускание на пустом поле сохраняет старую связь. Переход также можно изменить в свойствах блока. Для удаления откройте список «Связи» и нажмите ×.'],
+    ['Как переместить или удалить связь?', 'Нажмите на линию и выберите «Удалить выделенное» или нажмите Delete. Удаление можно отменить. Потяните конец существующей линии к другому входу или свободному выходу. Отпускание на пустом поле сохраняет старую связь. Переход также можно изменить в свойствах блока. Для удаления откройте список «Связи» и нажмите ×.'],
     ['Когда сохраняются изменения?', 'Сохранение ручное: нажмите «Сохранить» и дождитесь статуса «Сохранено». Если произошла ошибка, изменения остаются на экране — повторите сохранение.'],
     ['Что уже работает, а что появится позже?', 'Работают схема, интерактивный чат и экспорт ZIP на Python, JavaScript, TypeScript и Go. Медиа, хостинг ботов и другие платформы запланированы на следующие этапы.'],
     ['Зачем нужны переменные?', 'Они хранят данные пользователя. Создайте переменную, например имя, в разделе «Переменные», выберите её в блоке ввода и используйте {имя} в сообщении.']
@@ -201,7 +201,7 @@ function renderGuide(target = main) {
 function outputs(node) { if (node.type === 'end') return []; if (node.type === 'condition') return [['yes', 'Да'], ['no', 'Нет']]; if (node.type === 'buttons') return (node.data.buttons || []).filter(b => b.action === 'transition').map(b => [b.id, b.label]); return [['next', 'Далее']]; }
 function addNode(type, position) {
   if (!Object.hasOwn(blockNames, type) || (type === 'start' && draft.nodes.some(n => n.type === 'start'))) return;
-  const id = crypto.randomUUID(); draft.nodes.push({ id, type, x: position?.x ?? draft.nodes.length % 3 * 320, y: position?.y ?? Math.floor(draft.nodes.length / 3) * 240, data: { text: '', command: '', variable: '', validation: 'text', error: 'Проверьте введённое значение', operation: 'eq', value: '', placement: 'inline', buttons: [] } }); selectedNode = id; changed(); openWorkspace('builder', 'properties');
+  const id = crypto.randomUUID(); draft.nodes.push({ id, type, x: position?.x ?? draft.nodes.length % 3 * 320, y: position?.y ?? Math.floor(draft.nodes.length / 3) * 240, data: { text: '', command: '', variable: '', validation: 'text', error: 'Проверьте введённое значение', operation: 'eq', value: '', placement: 'inline', buttons: [] } }); selectedNode = id; selectedNodeIds = new Set([id]); selectedEdgeIds.clear(); focusNode = position ? null : id; changed(); openWorkspace('builder', 'properties');
 }
 function undoEditor() { if (!editHistory.undo(draft)) return notify('Нечего отменять.'); selectedNode = null; selectedNodeIds.clear(); selectedEdgeIds.clear(); changedWithoutHistory(); render(); }
 function redoEditor() { if (!editHistory.redo(draft)) return notify('Нечего повторять.'); selectedNode = null; selectedNodeIds.clear(); selectedEdgeIds.clear(); changedWithoutHistory(); render(); }
@@ -252,34 +252,26 @@ function cutSelectedBlocks() {
   deleteSelection({ nodeIds: ids.filter(id => draft.nodes.some(n => n.id === id && n.type !== 'start')), edgeIds: [] });
 }
 function deleteSelection({ confirmFirst = false, nodeIds, edgeIds } = {}) {
-  const nodesToDelete = new Set(nodeIds || (selectedNodeIds.size > 1 && !selectedNode ? selectedNodeIds : selectedNode ? [selectedNode] : selectedNodeIds));
-  const edgesToDelete = new Set(edgeIds || selectedEdgeIds);
-  for (const edge of draft?.edges || []) if (nodesToDelete.has(edge.source) || nodesToDelete.has(edge.target)) edgesToDelete.add(edge.id);
-  if (!nodesToDelete.size && !edgesToDelete.size) return false;
+  if (!draft) return false;
+  const nodesToDelete = new Set(nodeIds ?? (selectedNodeIds.size ? selectedNodeIds : selectedNode ? [selectedNode] : []));
+  const edgesToDelete = new Set(edgeIds ?? selectedEdgeIds);
+  const nodeCount = draft.nodes.filter(node => nodesToDelete.has(node.id)).length;
+  const removedEdges = draft.edges.filter(edge => edgesToDelete.has(edge.id) || nodesToDelete.has(edge.source) || nodesToDelete.has(edge.target));
+  if (!nodeCount && !removedEdges.length) return false;
   if (confirmFirst && !confirm('Удалить выделенные блоки и связи?')) return false;
-
-  const nodes = draft.nodes.map((node, index) => ({ node: structuredClone(node), index })).filter(item => nodesToDelete.has(item.node.id));
-  const edges = draft.edges.filter(edge => edgesToDelete.has(edge.id)).map(edge => structuredClone(edge));
+  const projectId = draft.id;
   draft.nodes = draft.nodes.filter(node => !nodesToDelete.has(node.id));
-  draft.edges = draft.edges.filter(edge => !edgesToDelete.has(edge.id));
+  const removedIds = new Set(removedEdges.map(edge => edge.id));
+  draft.edges = draft.edges.filter(edge => !removedIds.has(edge.id));
   selectedNode = null; selectedNodeIds.clear(); selectedEdgeIds.clear(); focusNode = null;
   changed(); render();
-
-  const nodeCount = nodes.length, edgeCount = edges.length;
-  const message = nodeCount ? (nodeCount === 1 ? 'Блок удалён' : 'Удалено блоков: ' + nodeCount) : (edgeCount === 1 ? 'Линия удалена' : 'Удалено линий: ' + edgeCount);
-  notify(message, {
-    label: 'Восстановить',
-    run: () => {
-      if (!draft) return;
-      for (const item of nodes.sort((left, right) => left.index - right.index)) {
-        if (!draft.nodes.some(node => node.id === item.node.id)) draft.nodes.splice(Math.min(item.index, draft.nodes.length), 0, item.node);
-      }
-      const available = new Set(draft.nodes.map(node => node.id));
-      for (const edge of edges) if (available.has(edge.source) && available.has(edge.target) && !draft.edges.some(item => item.id === edge.id)) draft.edges.push(edge);
-      if (nodes.length === 1) { selectedNode = nodes[0].node.id; selectedNodeIds.add(selectedNode); }
-      changed(); render();
-    }
-  });
+  const afterDeletion = JSON.stringify([scenarioSignature(), draft.description]);
+  const message = nodeCount ? 'Удалено блоков: ' + nodeCount + ', связей: ' + removedEdges.length : 'Удалено связей: ' + removedEdges.length;
+  notify(message, { label: 'Восстановить', run: () => {
+    if (!draft || draft.id !== projectId) return notify('Откройте проект, в котором были удалены элементы.');
+    if (JSON.stringify([scenarioSignature(), draft.description]) !== afterDeletion) return notify('После удаления схема изменилась. Используйте «Отменить» для последовательной отмены действий.');
+    undoEditor();
+  } });
   return true;
 }
 function deleteNode(id, { confirmFirst = false } = {}) {
@@ -340,6 +332,7 @@ function renderWorkspacePanel(page, target) {
 }
 function renderBuilder(page = 'builder') {
   const h = heading('Сценарий бота', 'Telegram · Добавьте блоки, соедините и сохраните');
+  h.append(button('▷ Предпросмотр', () => openWorkspace('testing', 'test'), 'graphite-preview'));
   const actions = element('div', 'editor-actions'); actions.append(button('✦ ИИ', openAssistant, 'ai-trigger'), button('⤢ Расставить', arrangeScenario), button('↶ Отменить', undoEditor), button('Повторить', redoEditor), button('Копировать', copySelectedBlocks), button('Вставить', pasteCopiedBlocks), button('⌫ Удалить', () => { if (!deleteSelection()) notify('Сначала выделите блок или линию.'); }, 'delete-selection-button'), ...(aiUndo?.projectId === draft.id ? [button('↶ Отменить ИИ', undoAIChange)] : []), button('▷ Предпросмотр', () => { openWorkspace('testing', 'test'); }), button('↓ Полный ZIP', downloadProjectBundle), button('✓ Проверить', validateProject), button('Сохранить', saveProject, 'primary')); h.append(actions); for (const b of actions.children) { if (b.textContent === 'Сохранить') b.dataset.tour = 'save'; if (b.textContent.includes('Предпросмотр')) b.dataset.tour = 'preview'; }
   renderBlockSearch();
   const mobileTabs = element('div', 'editor-tabs'); mobileTabs.setAttribute('role', 'group'); mobileTabs.setAttribute('aria-label', 'Панели конструктора');
@@ -360,7 +353,7 @@ function renderBuilder(page = 'builder') {
     b.ondragstart = event => { event.dataTransfer.setData('application/botforge-block', type); event.dataTransfer.effectAllowed = 'copy'; }; b.title = blockTips[type]; b.setAttribute('aria-label', 'Добавить блок «' + name + '»'); library.append(b);
   }
   const layers = element('details', 'board-layers'); layers.open = true; layers.append(element('summary', '', 'Блоки на доске · ' + draft.nodes.length));
-  for (const node of draft.nodes) { const row = button((node.data.text || node.data.command || blockNames[node.type]).slice(0, 34), () => { selectedNode = node.id; focusNode = node.id; openWorkspace('builder', 'properties'); }, node.id === selectedNode ? 'active' : ''); row.prepend(icon(icons[node.type])); row.classList.add('with-icon'); row.title = blockNames[node.type]; layers.append(row); }
+  for (const node of draft.nodes) { const row = button((node.data.text || node.data.command || blockNames[node.type]).slice(0, 34), () => { selectedNode = node.id; selectedNodeIds = new Set([node.id]); selectedEdgeIds.clear(); focusNode = node.id; openWorkspace('builder', 'properties'); }, node.id === selectedNode ? 'active' : ''); row.prepend(icon(icons[node.type])); row.classList.add('with-icon'); row.title = blockNames[node.type]; layers.append(row); }
   library.append(layers);
   const closeLibrary = button('× К схеме', () => openWorkspace('builder'), 'mobile-panel-close'); closeLibrary.setAttribute('aria-label', 'Закрыть библиотеку блоков'); library.prepend(closeLibrary);
   const search = document.querySelector('.block-search'); if (search) library.append(search);
@@ -378,7 +371,7 @@ function renderBuilder(page = 'builder') {
   if (!testing && validationResult) renderValidationPanel(inspector);
   const picker = element('label', 'field block-picker'); picker.append(element('span', '', 'Выберите блок')); const select = element('select'); const placeholder = element('option', '', 'Выберите блок на схеме или в списке'); placeholder.value = ''; select.append(placeholder);
   for (const n of draft.nodes) { const option = element('option', '', blockNames[n.type] + ' · ' + (n.data.text || n.data.command || n.id.slice(0, 6)).slice(0, 40)); option.value = n.id; select.append(option); }
-  select.value = selectedNode || ''; select.onchange = () => { selectedNode = select.value || null; render(); }; picker.append(select); if (!testing) inspector.append(picker);
+  select.value = selectedNode || ''; select.onchange = () => { selectedNode = select.value || null; focusNode = selectedNode; selectedNodeIds = new Set(selectedNode ? [selectedNode] : []); selectedEdgeIds.clear(); render(); }; picker.append(select); if (!testing) inspector.append(picker);
   if (testing) renderChat(inspector);
   const node = draft.nodes.find(n => n.id === selectedNode);
   if (testing) {}
@@ -387,7 +380,7 @@ function renderBuilder(page = 'builder') {
     inspector.append(element('h2', '', 'Свойства блока'), element('p', 'muted', 'Выберите блок на схеме.'));
   }
   const connections = element('details', 'connections-list'); connections.append(element('summary', '', 'Связи · ' + draft.edges.length));
-  for (const edge of draft.edges) { const source = draft.nodes.find(n => n.id === edge.source), target = draft.nodes.find(n => n.id === edge.target); if (!source || !target) continue; const row = element('div', 'connection-row'); row.append(element('span', '', blockNames[source.type] + ' → ' + blockNames[target.type]), button('×', () => { draft.edges = draft.edges.filter(e => e.id !== edge.id); changed(); render(); }, 'remove-edge')); row.lastChild.setAttribute('aria-label', 'Удалить связь ' + blockNames[source.type] + ' → ' + blockNames[target.type]); connections.append(row); }
+  for (const edge of draft.edges) { const source = draft.nodes.find(n => n.id === edge.source), target = draft.nodes.find(n => n.id === edge.target); if (!source || !target) continue; const row = element('div', 'connection-row'); row.append(element('span', '', blockNames[source.type] + ' → ' + blockNames[target.type]), button('×', () => deleteSelection({ nodeIds: [], edgeIds: [edge.id] }), 'remove-edge')); row.lastChild.setAttribute('aria-label', 'Удалить связь ' + blockNames[source.type] + ' → ' + blockNames[target.type]); connections.append(row); }
   if (!testing) inspector.append(connections);
   }
   const closeInspector = button('× К схеме', () => openWorkspace('builder'), 'mobile-panel-close'); closeInspector.setAttribute('aria-label', 'Закрыть боковую панель'); inspector.prepend(closeInspector);
@@ -397,6 +390,7 @@ function renderBuilder(page = 'builder') {
   disposeCanvas = window.BotForgeCanvas.mount(canvas, draft, blockNames, outputs, {
     drop: (type, position) => addNode(type, position),
     selected: selectedNode,
+    remove: (nodeIds, edgeIds) => deleteSelection({ nodeIds, edgeIds }),
     selectionState: () => ({ nodes: [...selectedNodeIds], edges: [...selectedEdgeIds] }),
     selection: (nodeIds, edgeIds) => {
       selectedNodeIds = new Set(nodeIds); selectedEdgeIds = new Set(edgeIds);
@@ -416,7 +410,12 @@ function renderBuilder(page = 'builder') {
       if (id) openWorkspace('builder', 'properties'); else render();
     },
     connect: c => connectBlocks(c.source, c.sourceHandle, c.target),
-    move: changes => { for (const c of changes) if (c.type === 'position' && c.position) { const n = draft.nodes.find(n => n.id === c.id); if (n && (n.x !== c.position.x || n.y !== c.position.y)) { n.x = c.position.x; n.y = c.position.y; changed(); } } },
+    move: changes => {
+      let moved = false;
+      for (const c of changes) if (c.type === 'position' && c.position) { const n = draft.nodes.find(n => n.id === c.id); if (n && (n.x !== c.position.x || n.y !== c.position.y)) { n.x = c.position.x; n.y = c.position.y; moved = true; } }
+      if (moved) { if (changes.some(c => c.dragging)) changedWithoutHistory(); else changed(); }
+      if (changes.some(c => c.type === 'position' && c.dragging === false)) editHistory.record(draft);
+    },
     edges: changes => { const removed = new Set(changes.filter(c => c.type === 'remove').map(c => c.id)); if (removed.size) { draft.edges = draft.edges.filter(e => !removed.has(e.id)); changed(); } },
     viewport: v => { canvasViewport = v; }
   }, canvasViewport);
@@ -531,8 +530,34 @@ function render() {
   return renderBuilder(page);
 }
 const mobileMenu = document.querySelector('#mobile-menu');
-mobileMenu.append(document.querySelector('nav').cloneNode(true));
-document.querySelector('#open-mobile-menu').onclick = () => mobileMenu.showModal();
+const drawerNavigation = document.querySelector('nav').cloneNode(true);
+const scenarioSettings = element('details', 'drawer-settings'); scenarioSettings.append(element('summary', '', 'Настройки сценария'));
+for (const link of [...drawerNavigation.children]) {
+  if (['behavior','variables','guide'].includes(link.dataset.page)) scenarioSettings.append(link);
+  if (link.dataset.page === 'testing') link.remove();
+}
+drawerNavigation.append(scenarioSettings); mobileMenu.append(drawerNavigation);
+const workspaceMenuButton = document.querySelector('#open-mobile-menu');
+workspaceMenuButton.replaceChildren(icon('list'), document.createTextNode('Меню'));
+document.querySelector('.sidebar').insertBefore(workspaceMenuButton, document.querySelector('.sidebar nav'));
+workspaceMenuButton.onclick = () => {
+  mobileMenu.querySelector('.workspace-menu-actions')?.remove();
+  const actions = document.querySelector('.editor-actions');
+  if (actions) {
+    const section = element('section', 'workspace-menu-actions');
+    const tools = element('details', 'workspace-extra-tools'); tools.append(element('summary', '', 'Инструменты схемы'));
+    for (const original of actions.querySelectorAll('button')) {
+      const label = original.textContent.trim();
+      if (label === 'Сохранить' || label === 'Предпросмотр' || label.includes('Удалить') || label === 'Копировать' || label === 'Вставить') continue;
+      if (label === 'Отменить' && !editHistory.canUndo() || label === 'Повторить' && !editHistory.canRedo()) continue;
+      const item = button('', () => { mobileMenu.close(); return original.onclick(); }); item.append(...[...original.childNodes].map(node => node.cloneNode(true))); item.disabled = original.disabled;
+      if (label === 'ИИ' || label === 'Отменить' || label === 'Повторить') section.append(item); else tools.append(item);
+    }
+    if (tools.children.length > 1) section.append(tools);
+    mobileMenu.insertBefore(section, mobileMenu.querySelector('nav'));
+  }
+  mobileMenu.showModal();
+};
 document.querySelector('#close-mobile-menu').onclick = () => mobileMenu.close();
 mobileMenu.addEventListener('click', event => { if (event.target.closest('a')) mobileMenu.close(); if (event.target === mobileMenu) { const box = mobileMenu.getBoundingClientRect(); if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) mobileMenu.close(); } });
 window.matchMedia('(max-width: 650px)').addEventListener('change', () => mobileMenu.close());

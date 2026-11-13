@@ -1,0 +1,171 @@
+/* Graphite: the approved product theme. */
+body.graphite { --surface:#232329; --bg:#19191f; --line:#383840; --border:#3a3a44; --blue:#ac98f3; --muted:#a3a3af; background:#19191f; color:#f0f0f4; color-scheme:dark; font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+body.graphite:not(.is-welcome) { --blue:#ac98f3; --border:#3a3a44; --muted:#a3a3af; background:#19191f; color:#f0f0f4; }
+body.graphite button,body.graphite .button { background:#292930; border-color:#44444f; color:#d9d9e1; border-radius:7px; }
+body.graphite button:hover,body.graphite .button:hover { background:#35353f; }
+body.graphite button.primary,body.graphite .graphite-preview { background:#ac98f3; border-color:#ac98f3; color:#1d182e; font-weight:600; }
+body.graphite button.primary:hover,body.graphite .graphite-preview:hover { background:#bdaaff; }
+body.graphite input,body.graphite select,body.graphite textarea { background:#25252d; border-color:#494953; color:#ededf2; border-radius:7px; }
+body.graphite input::placeholder,body.graphite textarea::placeholder { color:#9595a5; }
+body.graphite :focus-visible { outline:2px solid #b8a4ff; outline-offset:3px; }
+body.graphite .muted { color:#a5a5b4; }
+body.graphite:not(.is-welcome) .sidebar { background:#1e1e25; border-color:#38383f; color:#eeeef4; }
+body.graphite:not(.is-welcome) .brand { color:#f4f4f7; }
+body.graphite:not(.is-welcome) nav a { color:#adadbb; border-radius:8px; }
+body.graphite:not(.is-welcome) nav a:hover { background:#2c2c36; }
+body.graphite:not(.is-welcome) nav a.active { background:#39324f; color:#d4c6ff; }
+body.graphite:not(.is-welcome) .sidebar-note,body.graphite:not(.is-welcome) .sidebar-note small { color:#9292a3; }
+body.graphite:not(.is-welcome) .sidebar .mobile-menu-button { background:#292930; color:#c9c2df; border-color:#45414f; }
+body.graphite:not(.is-welcome) .topbar { background:#1c1c23; border-color:#38383f; color:#b9b9c6; }
+body.graphite:not(.is-welcome) .topbar button { background:#272730; border-color:#3f3f4b; color:#c1c1cf; }
+body.graphite:not(.is-welcome) .local-badge { color:#a8bea9; }
+body.graphite .graphite-preview { min-height:36px; padding:8px 16px; font-size:12px; }
+body.graphite:not(.is-welcome) .editor-page > .page-heading { background:#1c1c23; border-color:#38383f; padding:10px 18px; height:56px; min-height:56px; }
+body.graphite:not(.is-welcome) .editor-page > .page-heading h1 { font-size:14px; color:#eeeef4; }
+body.graphite:not(.is-welcome) .page-heading p { color:#a3a3b3; }
+body.graphite:not(.is-welcome) .builder.editor-shell { height:calc(100dvh - 134px); }
+body.graphite:not(.is-welcome) .editor-shell .library { background:#202027; color:#eeeef5; border-color:#38383f; padding:22px 16px; }
+body.graphite:not(.is-welcome) .library > .muted { color:#9999ac; line-height:1.6; }
+body.graphite:not(.is-welcome) .library h2 { font-size:15px; color:#f0f0f5; }
+body.graphite:not(.is-welcome) .library .panel-eyebrow { color:#9393a5; }
+body.graphite:not(.is-welcome) .library > .library-levels { background:#19191f; border-color:#393941; border-radius:8px; }
+body.graphite:not(.is-welcome) .library-levels button { color:#a8a8ba; background:transparent; }
+body.graphite:not(.is-welcome) .library-levels button.active { background:#373141; color:#e0d6ff; }
+body.graphite:not(.is-welcome) .library button.library-block { background:#292930; border-color:#45454f; color:#eeeeF4; border-radius:8px; padding:12px; }
+body.graphite:not(.is-welcome) .library button.library-block:hover { background:#33313d; border-color:#9281b6; }
+body.graphite:not(.is-welcome) .library-copy strong { font-size:13px; font-weight:500; }
+body.graphite:not(.is-welcome) .library-copy small { color:#aaaaba; }
+body.graphite:not(.is-welcome) .block-symbol { background:#363142; color:#c0adff; border-radius:7px; }
+body.graphite:not(.is-welcome) .board-layers,body.graphite:not(.is-welcome) .library .block-search { border-color:#3c3c46; }
+body.graphite:not(.is-welcome) .board-layers button { background:transparent; color:#a5a5b7; }
+body.graphite:not(.is-welcome) .board-layers button.active,body.graphite:not(.is-welcome) .board-layers button:hover { background:#383144; color:#d8caff; }
+body.graphite:not(.is-welcome) .library input,body.graphite:not(.is-welcome) .library .block-search-results button { background:#26262f; color:#d5d5e2; border-color:#474752; }
+body.graphite:not(.is-welcome) .editor-center,body.graphite:not(.is-welcome) .flow-canvas { background:#19191f; }
+body.graphite:not(.is-welcome) .canvas-bar,body.graphite:not(.is-welcome) .canvas-footer { background:#19191f; color:#9f9fb1; border-color:#33333f; }
+body.graphite:not(.is-welcome) .inspector { background:#202027; color:#ddddE8; border-color:#3c3c46; padding:20px; }
+body.graphite:not(.is-welcome) .inspector h2,body.graphite:not(.is-welcome) .inspector h3 { color:#f0f0f5; font-weight:500; }
+body.graphite:not(.is-welcome) .inspector-tabs { background:#18181f; border-color:#383842; border-radius:8px; }
+body.graphite:not(.is-welcome) .inspector-tabs button { background:transparent; color:#a5a5b7; }
+body.graphite:not(.is-welcome) .inspector-tabs button.active { background:#383042; color:#deceff; }
+body.graphite:not(.is-welcome) .inspector input,body.graphite:not(.is-welcome) .inspector textarea,body.graphite:not(.is-welcome) .inspector select { background:#282830; border-color:#4b4b57; color:#ededf5; border-radius:7px; }
+body.graphite:not(.is-welcome) .inspector button { background:#2c2c36; border-color:#454551; color:#c9c9d9; }
+body.graphite:not(.is-welcome) .inspector button.primary { background:#ad99f4; border-color:#ad99f4; color:#231b36; }
+body.graphite:not(.is-welcome) .inspector .property-tip,body.graphite:not(.is-welcome) .inspector .muted { color:#a5a5b8; }
+body.graphite:not(.is-welcome) .inspector .inspector-tip { background:#282831; color:#a6a6b9; }
+body.graphite:not(.is-welcome) .inspector-empty { color:#7f7a92; }
+body.graphite:not(.is-welcome) .inspector .connections-list { border-color:#3b3b48; }
+body.graphite:not(.is-welcome) .inspector .connection-row { color:#b3b3c8; }
+body.graphite:not(.is-welcome) .inspector .guide-intro,body.graphite:not(.is-welcome) .inspector .guide-card,body.graphite:not(.is-welcome) .inspector .faq,body.graphite:not(.is-welcome) .inspector .export-settings,body.graphite:not(.is-welcome) .inspector .export-code { background:#282830; border-color:#41414e; color:#cccce0; }
+body.graphite:not(.is-welcome) .inspector .guide-card p,body.graphite:not(.is-welcome) .inspector .faq p,body.graphite:not(.is-welcome) .inspector .guide-intro p,body.graphite:not(.is-welcome) .inspector .export-instruction p { color:#b6b6ca; }
+body.graphite:not(.is-welcome) .scenario-node { border-radius:11px; border:1px solid #52525f; background:#25252d; color:#ededf4; box-shadow:0 4px 16px #0002; }
+body.graphite:not(.is-welcome) .scenario-node-title { background:transparent; border-color:#42424f; padding:14px; }
+body.graphite:not(.is-welcome) .scenario-node-title strong { font-size:13px; font-weight:600; color:#f1f1f6; }
+body.graphite:not(.is-welcome) .scenario-node-body { color:#c7c7d7; font-size:12px; padding:14px; }
+body.graphite:not(.is-welcome) .scenario-output { background:#2e2e39; color:#b7b7cc; border-radius:5px; margin:5px 10px 10px; padding:8px 10px; }
+body.graphite:not(.is-welcome) .scenario-node.is-selected { border-color:#b29bff; box-shadow:0 0 0 2px #ad93ff70; }
+body.graphite:not(.is-welcome) .scenario-node.is-active { border-color:#a5d8ae; box-shadow:0 0 0 2px #a5d8ae35; }
+body.graphite:not(.is-welcome) .scenario-node .react-flow__handle { background:#b7a8dd; border-color:#202027; box-shadow:none; }
+body.graphite:not(.is-welcome) .type-start .block-symbol { color:#a6e3a8; background:#2b4032; }
+body.graphite:not(.is-welcome) .type-end .block-symbol { color:#a6e3a8; }
+body.graphite:not(.is-welcome) .react-flow__edge-path { stroke:#a0a0b4; }
+body.graphite:not(.is-welcome) .react-flow__edge.selected .react-flow__edge-path { stroke:#bca4ff; stroke-width:3; }
+body.graphite .react-flow__controls { border:1px solid #4b4b58; border-radius:7px; overflow:hidden; box-shadow:0 2px 9px #0003; }
+body.graphite .react-flow__controls-button { background:#272730; fill:#c9c9d8; border-color:#42424e; }
+body.graphite .react-flow__minimap { background:#26262f; border:1px solid #454552; border-radius:9px; }
+body.graphite .canvas-selection-actions { background:#282831; color:#d6d6e5; border-color:#555362; box-shadow:0 4px 16px #0004; }
+body.graphite .canvas-selection-actions button { background:#412d33; color:#ffaaa8; border-color:#68424b; }
+body.graphite .bf-context-menu { background:#282830; color:#dddde9; border-color:#555460; box-shadow:0 10px 32px #0006; }
+body.graphite .bf-context-menu button:hover { background:#3e354f; }
+body.graphite:not(.is-welcome) .quick-start { background:#202027; border-color:#3a3a46; color:#a6a6bc; }
+body.graphite:not(.is-welcome) .quick-start button { color:#c3b4f5; }
+body.graphite:not(.is-welcome) #mobile-menu[open] { background:#202027; color:#ededf5; border-color:#494451; }
+body.graphite:not(.is-welcome) #mobile-menu nav a { color:#b8b8cd; }
+body.graphite:not(.is-welcome) #mobile-menu nav a.active { background:#433853; color:#e0d0ff; }
+body.graphite:not(.is-welcome) #mobile-menu #close-mobile-menu { background:#30303b; border-color:#4b4759; color:#ddd1ff; }
+body.graphite .workspace-menu-actions { border-color:#42404b; }
+body.graphite .workspace-menu-actions button { color:#ddd5f2; background:transparent; }
+body.graphite .workspace-menu-actions button:hover { background:#3c334d; }
+body.graphite .workspace-extra-tools summary,body.graphite .drawer-settings summary { padding:12px; cursor:pointer; font-size:13px; color:#a9a3bd; }
+body.graphite .workspace-extra-tools button { font-size:12px; color:#b4aec6; }
+body.graphite .drawer-settings { border-top:1px solid #393742; margin-top:8px; padding-top:6px; }
+body.graphite:not(.is-welcome) .project-card { background:#24242c; border-color:#454451; border-radius:12px; }
+body.graphite:not(.is-welcome) .project-card .card-top { background:transparent; }
+body.graphite:not(.is-welcome) .project-icon { background:#383144; color:#c8b5ff; }
+body.graphite:not(.is-welcome) .project-thumbnail { background-color:#1c1c23; background-image:radial-gradient(#41414e 1px,transparent 1px); border-color:#3f3e49; }
+body.graphite .project-mini-node { background:#2a2a35; border-color:#555565; color:#d5d5e6; border-radius:5px; }
+body.graphite .project-updated,body.graphite .project-meta { color:#a1a1b9; }
+body.graphite:not(.is-welcome) .card-top h2,body.graphite .project-name { color:#f0f0f6; }
+body.graphite:not(.is-welcome) .platform-tag { background:#34313d; color:#b4a8cf; }
+body.graphite:not(.is-welcome) .project-open,body.graphite:not(.is-welcome) .card-actions .open { background:#3b324e; color:#e1d4ff; border-color:#64547f; }
+body.graphite:not(.is-welcome) .toolbar input,body.graphite .toolbar select { background:#272730; border-color:#494955; color:#e1e1ed; }
+body.graphite:not(.is-welcome) .welcome-banner { background:#26242e; border-color:#494251; }
+body.graphite:not(.is-welcome) .welcome-banner p,body.graphite:not(.is-welcome) .welcome-banner .eyebrow { color:#b4acc7; }
+body.graphite:not(.is-welcome) .welcome-banner h2 { color:#e7def6; }
+body.graphite .empty,body.graphite .properties { background:#25252e; color:#c9c6dc; border-color:#464151; }
+body.graphite dialog { background:#25252f; color:#e1dcec; border-color:#514b60; }
+body.graphite:not(.is-welcome) #ai-dialog[open] { background:#22222a; color:#e0dbea; border-color:#494252; }
+body.graphite:not(.is-welcome) #ai-dialog textarea { background:#2b2935; color:#eee7fa; border-color:#5a506a; }
+body.graphite:not(.is-welcome) #ai-dialog button { background:#302b3b; color:#d6cde7; border-color:#50465f; }
+body.graphite:not(.is-welcome) #ai-dialog button.primary { background:#ac98f3; color:#251b3d; border-color:#ac98f3; }
+body.graphite:not(.is-welcome) #ai-dialog .muted,body.graphite:not(.is-welcome) #ai-dialog .ai-context,body.graphite:not(.is-welcome) #ai-dialog .ai-provider,body.graphite:not(.is-welcome) #ai-dialog .ai-privacy { color:#b0a6c2; }
+body.graphite:not(.is-welcome) #ai-dialog .ai-settings { color:#b6aaca; border-color:#473e54; }
+body.graphite:not(.is-welcome) #ai-dialog .ai-modes,body.graphite:not(.is-welcome) #ai-dialog .ai-run-options { background:#292530; border-color:#4b4258; }
+body.graphite:not(.is-welcome) #ai-dialog .ai-modes button.active { background:#4b3d60; color:#e1cffc; }
+body.graphite:not(.is-welcome) #ai-dialog .ai-answer,body.graphite:not(.is-welcome) #ai-dialog .ai-working,body.graphite:not(.is-welcome) #ai-dialog .ai-proposal { background:#302939; color:#e0d4f0; border-color:#574568; }
+body.graphite:not(.is-welcome) #ai-dialog .dialog-actions { background:#22222a; }
+body.graphite .chat-mount { background:#1d1d26; color:#e0deed; border-color:#464150; }
+body.graphite .chat-heading,body.graphite .chat-form { background:#292531; color:#ded6ed; border-color:#4c425b; }
+body.graphite .chat-history { background:#1c1a23; }
+body.graphite .chat-message { background:#302b3a; color:#e5dfee; }
+body.graphite .chat-message.role-user { background:#443554; color:#f0e0ff; }
+body.graphite .chat-message.role-error { background:#452b34; color:#ffbcc8; }
+body.graphite:not(.is-welcome) .inspector .chat-heading strong { color:#e8def5; }
+body.graphite:not(.is-welcome) .inspector .chat-choice { background:#40334f; color:#d6c0ff; border-color:#65517f; }
+body.graphite .chat-state { background:#25212d; color:#b9abcE; }
+body.graphite .chat-command-menu,body.graphite:not(.is-welcome) .inspector .chat-form button.chat-command-option { background:#2b2635; color:#e0d5f1; border-color:#50425f; }
+body.graphite .chat-command-option strong,body.graphite:not(.is-welcome) .inspector button.chat-command { color:#c8acff; }
+body.graphite .chat-command-option span { color:#b7aacb; }
+body.graphite:not(.is-welcome) .inspector .chat-form button.chat-command-option[aria-selected=true] { background:#463653; }
+body.graphite .language-picker-control,body.graphite:not(.is-welcome) .language-picker-control select { background:#292630; border-color:#4f455d; color:#ddd3ec; }
+body.graphite .language-picker-control .language-icon { background:#322b3e; color:#c1acdF; border-color:#51425f; }
+body.graphite .source-view { background:#19171f; color:#d6cbe7; border-color:#44394f; }
+body.graphite.is-welcome .welcome-header { border-color:#38343f; }
+body.graphite.is-welcome .welcome-brand { color:#efeaf7; }
+body.graphite.is-welcome .welcome-help { color:#b5abc5; }
+body.graphite.is-welcome .welcome-signin { background:#322b3e; color:#e3d6f7; border-color:#564763; }
+body.graphite.is-welcome .welcome-copy h1 { color:#efebf6; }
+body.graphite.is-welcome .welcome-lead { color:#b5acC4; }
+body.graphite.is-welcome .welcome-google { background:#ac98f3; color:#251d35; border-color:#ac98f3; }
+body.graphite.is-welcome .welcome-preview { border-color:#51465e; background:#27222f; }
+body.graphite.is-welcome .welcome-preview-bar { background:#24202b; }
+body.graphite.is-welcome .welcome-library,body.graphite.is-welcome .welcome-properties { background:#2b2534; border-color:#4e435b; color:#dbd0ea; }
+body.graphite.is-welcome .welcome-board { background-color:#1d1a24; background-image:radial-gradient(#4b4058 .7px,transparent .7px); }
+body.graphite.is-welcome .welcome-flow-node { background:#302838; border-color:#655573; color:#eadff4; }
+body.graphite.is-welcome .welcome-flow-node p,body.graphite.is-welcome .welcome-property-value { color:#c5b7d5; }
+body.graphite.is-welcome .welcome-property-value { border-color:#5d4b70; }
+body.graphite.is-welcome .welcome-preview-footer { background:#25202c; border-color:#493d55; color:#b9a9cc; }
+body.graphite.is-welcome .welcome-steps h2 { color:#e5d9f0; }
+body.graphite.is-welcome .welcome-steps p { color:#b4a4c7; }
+body.graphite.is-welcome .welcome-bottom { border-color:#44394f; color:#a99aba; }
+body.graphite.is-welcome .welcome-bottom a { color:#c3b0df; }
+@media(max-width:650px) {
+  body.graphite:not(.is-welcome) .editor-page > .page-heading { display:flex; min-height:48px; height:48px; padding:6px 12px; }
+  body.graphite .graphite-preview { margin-left:auto; min-height:36px; padding:7px 12px; font-size:11px; }
+  body.graphite:not(.is-welcome) .builder.editor-shell { height:auto; min-height:0; }
+  body.graphite:not(.is-welcome) .editor-tabs { background:#202027; border-color:#3c3c48; }
+  body.graphite:not(.is-welcome) .editor-tabs button { color:#b7abcB; }
+  body.graphite:not(.is-welcome) .editor-tabs button.active { background:#42364f; color:#ddc9ff; }
+  body.graphite:not(.is-welcome) .editor-shell.tab-blocks .library,body.graphite:not(.is-welcome) .editor-shell.tab-properties .inspector,body.graphite:not(.is-welcome) .editor-shell.tab-test .inspector { background:#202027; color:#e8deF3; }
+  body.graphite:not(.is-welcome) .mobile-panel-close { background:#202027; border-color:#443a51; color:#c6b1e7; }
+}
+body.graphite:not(.is-welcome) .editor-page > .page-heading > button.graphite-preview { background:#ac98f3; border-color:#ac98f3; color:#251b39; font-weight:600; }
+body.graphite:not(.is-welcome) .scenario-output { border-color:#41414d; }
+body.graphite:not(.is-welcome) .inspector .source-view { background:#19171f; color:#d6cbe7; border-color:#44394f; }
+body.graphite .project-actions,body.graphite .project-actions-menu { background:#292630; color:#ded4ee; border-color:#4a4155; }
+body.graphite .graphite-node-toolbar { display:flex; gap:2px; padding:5px; background:#292630; border:1px solid #585061; border-radius:8px; box-shadow:0 6px 20px #0005; }
+body.graphite .graphite-node-toolbar button { min-height:34px; background:transparent; border:0; color:#e0d6f2; font-size:12px; padding:6px 12px; }
+body.graphite .graphite-node-toolbar button:last-child { color:#ffaaa8; }
+body.graphite #mobile-menu .workspace-menu-actions button { justify-content:flex-start; width:100%; text-align:left; }
+body.graphite .react-flow__minimap { margin:10px; overflow:hidden; }
+body.graphite .react-flow__minimap svg { display:block; max-width:100%; }
+@media(max-width:650px) { body.graphite .react-flow__minimap { margin:8px; border-radius:7px; } }
