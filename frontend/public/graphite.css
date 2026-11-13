@@ -214,3 +214,14 @@ body.graphite .project-thumbnail { overflow:hidden; }
  body.graphite:not(.is-welcome) .project-grid { grid-template-columns:minmax(0,1fr); gap:16px; }
  body.graphite .topbar .account-button { max-width:48vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 }
+html { min-height:100%; background:#19191f; color-scheme:dark; }
+body.graphite,body.graphite .workspace { min-height:100dvh; }
+body.graphite .workspace-loading,body.graphite .workspace-empty { max-width:640px; padding:28px; border:1px solid #3a3a44; border-radius:12px; background:#232329; }
+body.graphite .workspace-loading h1 { color:#f0f0f4; font-size:24px; }
+body.graphite .workspace-empty { display:grid; gap:12px; }
+body.graphite .workspace-empty h2 { font-size:16px; margin:0 0 8px; }
+body.graphite .workspace-project-choice { text-align:left; min-height:44px; overflow-wrap:anywhere; }
+@media(max-width:650px) { body.graphite .workspace-loading,body.graphite .workspace-empty { padding:20px; } }
+:root { min-height:100%; background:#19191f; color-scheme:dark; }
+body.graphite .workspace-empty .workspace-project-choice { text-align:left; justify-content:flex-start; }
+body.graphite .workspace-empty .text-button { width:auto; justify-self:start; background:transparent; border-color:transparent; color:#b5a8cf; }

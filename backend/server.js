@@ -1,7 +1,7 @@
 const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { randomUUID } = require('node:crypto');
+const { randomUUID, createHash } = require('node:crypto');
 const { validate, checkShape, defaults } = require('./project');
 const { generate, archive } = require('./exporter');
 const { createAssistant } = require('./assistant');
@@ -34,9 +34,13 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, '..
       if (await auth.handle(req, res, url)) return;
       if (!url.pathname.startsWith('/api/')) {
         const entry = Object.hasOwn(files, url.pathname) ? files[url.pathname] : null;
-        if (!entry || req.method !== 'GET') return send(404, { message: 'Не найдено' });
-        res.writeHead(200, { 'Content-Type': entry[1], 'Cache-Control': 'no-cache, must-revalidate' });
-        return res.end(await fs.readFile(path.join(__dirname, '..', 'frontend', 'public', entry[0])));
+        if (!entry || !['GET', 'HEAD'].includes(req.method)) return send(404, { message: 'Не найдено' });
+        const content = await fs.readFile(path.join(__dirname, '..', 'frontend', 'public', entry[0]));
+        const etag = '"' + createHash('sha256').update(content).digest('base64url') + '"';
+        res.setHeader('ETag', etag); res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+        if (String(req.headers['if-none-match'] || '').split(',').some(value => value.trim().replace(/^W\//, '') === etag || value.trim() === '*')) { res.writeHead(304); return res.end(); }
+        res.writeHead(200, { 'Content-Type': entry[1] });
+        return res.end(req.method === 'HEAD' ? undefined : content);
       }
       if (!['GET', 'POST', 'PUT', 'DELETE'].includes(req.method)) return send(405, { message: 'Метод не поддерживается' });
       if (req.headers.origin && !auth.acceptsOrigin(req.headers.origin) && (publicOrigin || auth.enabled || req.headers.origin !== 'http://' + req.headers.host)) return send(403, { message: 'Недопустимый источник запроса' });

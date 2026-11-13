@@ -41,8 +41,16 @@ function changed() {
   refreshChecklist(); if (document.querySelector('#chat-mount')) paintChat();
 }
 function leave() { if (busy) { notify('Дождитесь завершения сохранения'); return false; } return !dirty || confirm('Есть несохранённые изменения. Покинуть проект?'); }
-async function reload() { loading = true; loadError = ''; render(); try { projects = await api(''); } catch (e) { loadError = e.message; } loading = false; render(); }
-async function openProject(id) { if (!leave()) return; clearTimeout(autosaveTimer); autosaveTimer = null; const project = await api('/' + id); draft = project; editHistory.reset(draft); blockSearch = ''; focusNode = null; editorTab = 'canvas'; canvasViewport = null; selectedId = id; selectedNode = null; selectedNodeIds.clear(); selectedEdgeIds.clear(); dirty = false; sessionStorage.setItem('botforge.selected', id); location.hash = 'builder'; render(); }
+async function reload() {
+  loading = true; loadError = ''; render();
+  try {
+    projects = await api('');
+    const selected = projects.find(project => project.id === selectedId);
+    if (!draft && selected) { draft = structuredClone(selected); editHistory.reset(draft); }
+  } catch (e) { loadError = e.message; }
+  loading = false; render();
+}
+async function openProject(id, page = 'builder') { if (!leave()) return; clearTimeout(autosaveTimer); autosaveTimer = null; const project = await api('/' + id); draft = project; editHistory.reset(draft); blockSearch = ''; focusNode = null; editorTab = 'canvas'; canvasViewport = null; selectedId = id; selectedNode = null; selectedNodeIds.clear(); selectedEdgeIds.clear(); dirty = false; sessionStorage.setItem('botforge.selected', id); location.hash = page; render(); }
 async function saveProject({ quiet = false } = {}) {
   clearTimeout(autosaveTimer); autosaveTimer = null;
   if (!draft) return false;
@@ -565,12 +573,18 @@ function renderWelcome() {
 function render() {
   const page = Object.hasOwn(titles, location.hash.slice(1)) ? location.hash.slice(1) : 'projects'; if (disposeCanvas) { disposeCanvas(); disposeCanvas = null; } document.body.classList.toggle('is-projects', page === 'projects'); document.body.classList.toggle('is-welcome', !!(account?.enabled && !account.user)); document.body.classList.toggle('is-editor', page !== 'projects' && !!draft); if (page !== 'builder' && aiDialog.open) closeAssistant(); main.classList.toggle('editor-page', page !== 'projects' && !!draft); main.replaceChildren(); document.title = 'BotForge · ' + titles[page]; document.querySelector('#breadcrumb').textContent = draft && page !== 'projects' ? draft.name : 'Рабочее пространство';
   document.querySelectorAll('[data-page]').forEach(a => { a.classList.toggle('active', a.dataset.page === page); if (a.dataset.page === page) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-  status(dirty ? 'Есть изменения' : 'Серверное хранение');
+  status(loading ? 'Загрузка…' : dirty ? 'Есть изменения' : 'Серверное хранение');
   if (accountError) { heading('Не удалось проверить доступ', accountError); main.append(button('Повторить', () => location.reload(), 'primary')); return; }
   if (account?.enabled && !account.user) return renderWelcome();
+  if (!account || loading && !draft) { const panel = element('section', 'workspace-loading'); panel.setAttribute('role', 'status'); panel.setAttribute('aria-live', 'polite'); panel.append(element('h1', '', 'Загружаем рабочее пространство'), element('p', 'muted', 'Получаем проекты и восстанавливаем выбранный сценарий…')); main.append(panel); return; }
   if (page === 'projects') return renderProjects();
   if (page === 'guide' && !draft) return renderGuide();
-  if (!draft) { heading(titles[page], 'Откройте проект, чтобы продолжить.'); main.append(button('К проектам', () => { location.hash = 'projects'; })); return; }
+  if (!draft) {
+    heading(titles[page], loadError || 'Выберите проект, чтобы открыть этот раздел.');
+    const panel = element('section', 'workspace-empty'); panel.append(element('h2', '', projects.length ? 'Ваши проекты' : 'Пока нет открытого проекта'));
+    for (const project of projects.slice(0, 5)) panel.append(button(project.name, () => openProject(project.id, page), 'workspace-project-choice'));
+    panel.append(button(loadError ? 'Повторить загрузку' : 'Все проекты', () => loadError ? reload() : location.hash = 'projects', 'text-button')); main.append(panel); return;
+  }
   return renderBuilder(page);
 }
 const mobileMenu = document.querySelector('#mobile-menu');
@@ -636,4 +650,5 @@ document.addEventListener('keydown', event => {
 window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('hashchange', render);
 window.matchMedia('(max-width: 650px)').addEventListener('change', () => { canvasViewport = null; render(); });
-(async () => { try { const r = await fetch('/auth/status'); if (!r.ok) throw Error('Не удалось проверить вход'); account = await r.json(); const b = button(account.enabled ? (account.user ? account.user.name + ' · Выйти' : 'Войти с Google') : 'Google · скоро', async () => { if (!account.enabled) return notify('Google-вход подготовлен. Осталось добавить данные приложения Google Cloud на сервер.'); if (account.user) { if (!leave()) return; const r = await fetch('/auth/logout', {method:'POST'}); if (!r.ok) throw Error('Не удалось выйти'); location.reload(); } else location.href = '/auth/google'; }, 'account-button'); document.querySelector('.topbar').append(b); } catch(e) { accountError = e.message; loading = false; render(); return; } if (account.enabled && !account.user) { loading = false; render(); return; } await reload(); if (selectedId && projects.some(p => p.id === selectedId)) { try { draft = await api('/' + selectedId); editHistory.reset(draft); render(); } catch (e) { notify(e.message); } } })();
+render();
+(async () => { try { const r = await fetch('/auth/status'); if (!r.ok) throw Error('Не удалось проверить вход'); account = await r.json(); const b = button(account.enabled ? (account.user ? account.user.name + ' · Выйти' : 'Войти с Google') : 'Google · скоро', async () => { if (!account.enabled) return notify('Google-вход подготовлен. Осталось добавить данные приложения Google Cloud на сервер.'); if (account.user) { if (!leave()) return; const r = await fetch('/auth/logout', {method:'POST'}); if (!r.ok) throw Error('Не удалось выйти'); location.reload(); } else location.href = '/auth/google'; }, 'account-button'); document.querySelector('.topbar').append(b); } catch(e) { accountError = e.message; loading = false; render(); return; } if (account.enabled && !account.user) { loading = false; render(); return; } await reload(); })();
