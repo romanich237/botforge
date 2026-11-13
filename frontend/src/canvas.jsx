@@ -27,7 +27,8 @@ function FocusNode({ id }) {
 function ScenarioMiniMap() {
   const { fitView, setCenter } = useReactFlow();
   const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 450;
-  return <MiniMap pannable zoomable ariaLabel="Мини-карта: нажмите блок для перехода"
+  const compact = window.matchMedia('(max-width: 650px)').matches;
+  return <MiniMap pannable zoomable ariaLabel="Мини-карта" style={{ width: compact ? 112 : 156, height: compact ? 78 : 108 }}
     onNodeClick={(event, node) => { event.stopPropagation(); fitView({ nodes: [{ id: node.id }], padding: .8, maxZoom: 1.2, duration }); }}
     onClick={(_, position) => setCenter(position.x, position.y, { duration })}
     nodeColor={node => node.data.type === 'start' ? '#9cdaa9' : '#a896f2'} maskColor="#18181e99"/>;

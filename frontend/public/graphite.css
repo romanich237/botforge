@@ -166,3 +166,6 @@ body.graphite .graphite-node-toolbar { display:flex; gap:2px; padding:5px; backg
 body.graphite .graphite-node-toolbar button { min-height:34px; background:transparent; border:0; color:#e0d6f2; font-size:12px; padding:6px 12px; }
 body.graphite .graphite-node-toolbar button:last-child { color:#ffaaa8; }
 body.graphite #mobile-menu .workspace-menu-actions button { justify-content:flex-start; width:100%; text-align:left; }
+body.graphite .react-flow__minimap { margin:10px; overflow:hidden; }
+body.graphite .react-flow__minimap svg { display:block; max-width:100%; }
+@media(max-width:650px) { body.graphite .react-flow__minimap { margin:8px; border-radius:7px; } }
