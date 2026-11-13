@@ -11,7 +11,7 @@ function createAuth(dataDir, config = {}) {
   const clientId = config.clientId ?? process.env.GOOGLE_CLIENT_ID;
   const clientSecret = config.clientSecret ?? process.env.GOOGLE_CLIENT_SECRET;
   const origin = config.origin ?? process.env.PUBLIC_ORIGIN;
-  const googleEnabled = false; // Google OAuth temporarily disabled; email/password is the active provider.
+  const googleEnabled = Boolean(clientId && clientSecret && origin);
   const enabled = true;
   const origins = new Set([origin, ...(config.allowedOrigins ?? process.env.ALLOWED_ORIGINS ?? '').split(',')].map(value => String(value || '').trim()).filter(Boolean));
   for (const value of origins) {
@@ -38,6 +38,7 @@ function createAuth(dataDir, config = {}) {
   db.exec('CREATE TABLE IF NOT EXISTS email_users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, created_at INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS logins (state TEXT PRIMARY KEY, verifier TEXT NOT NULL, nonce TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS usage (day TEXT NOT NULL, owner TEXT NOT NULL, requests INTEGER NOT NULL, PRIMARY KEY(day,owner)); CREATE TABLE IF NOT EXISTS ai_credits (owner TEXT PRIMARY KEY, tokens_remaining INTEGER NOT NULL CHECK(tokens_remaining >= 0))');
   const secureCookie = origin ? new URL(origin).protocol === 'https:' : true;
   const sessionCookieName = secureCookie ? '__Host-bf-session' : 'bf-session';
+  const loginCookieName = secureCookie ? '__Host-bf-login' : 'bf-login';
   const cookie = (name,value,seconds) => name+'='+value+'; Path=/; HttpOnly;'+(secureCookie ? ' Secure;' : '')+' SameSite=Lax; Max-Age='+seconds;
   const cookies = req => Object.fromEntries((req.headers.cookie || '').split(';').map(s => s.trim().split('=')));
   const clean = () => { db.prepare('DELETE FROM sessions WHERE expires < ?').run(now()); db.prepare('DELETE FROM logins WHERE expires < ?').run(now()); db.prepare('DELETE FROM usage WHERE day < ?').run(new Date(now()-7*86400000).toISOString().slice(0,10)); };
@@ -59,7 +60,7 @@ function createAuth(dataDir, config = {}) {
   async function handle(req,res,url) {
     if (!url.pathname.startsWith('/auth/')) return false;
     res.setHeader('Cache-Control','no-store'); res.setHeader('Referrer-Policy','no-referrer');
-    if(url.pathname==='/auth/status' && req.method==='GET'){const u=user(req);res.setHeader('Content-Type','application/json');res.end(JSON.stringify({enabled,provider:'email',user:u ? {name:u.name,email:u.email} : null}));return true;}
+    if(url.pathname==='/auth/status' && req.method==='GET'){const u=user(req);res.setHeader('Content-Type','application/json');res.end(JSON.stringify({enabled,provider:googleEnabled ? 'google' : 'email',googleEnabled,user:u ? {name:u.name,email:u.email} : null}));return true;}
     if (url.pathname==='/auth/register' || url.pathname==='/auth/login') {
       if (req.method!=='POST') throw fail(405,'Метод не поддерживается');
       if (!origins.has(req.headers.origin) || req.headers['sec-fetch-site']==='cross-site') throw fail(403,'Недопустимый источник запроса');
@@ -84,20 +85,20 @@ function createAuth(dataDir, config = {}) {
       res.setHeader('Set-Cookie',cookie(sessionCookieName,value,7*86400));
       return json(res,200,{user:{name:u.name,email:u.email}});
     }
-    if(url.pathname.startsWith('/auth/google')) throw fail(404,'Вход через Google временно отключён');
+    if(url.pathname.startsWith('/auth/google') && !googleEnabled) throw fail(503,'Google OAuth не настроен. Укажите GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET.');
     if(url.pathname==='/auth/logout' && req.method==='POST'){if(!origins.has(req.headers.origin))throw fail(403,'Недопустимый источник запроса');const value=cookies(req)[sessionCookieName];if(value)db.prepare('DELETE FROM sessions WHERE token=?').run(hash(value));res.setHeader('Set-Cookie',cookie(sessionCookieName,'',0));res.end('{}');return true;}
     if(req.method!=='GET')throw fail(405,'Метод не поддерживается');
     rate(req); clean();
     if(url.pathname==='/auth/google'){
       const state=token(),verifier=token(),nonce=token();db.prepare('INSERT INTO logins VALUES(?,?,?,?)').run(hash(state),verifier,nonce,now()+600000);
-      res.setHeader('Set-Cookie',cookie('__Host-bf-login',state,600));
+      res.setHeader('Set-Cookie',cookie(loginCookieName,state,600));
       res.writeHead(302,{Location:client.generateAuthUrl({scope:['openid','email','profile'],state,nonce,code_challenge:hashChallenge(verifier),code_challenge_method:'S256',prompt:'select_account'})});res.end();return true;
     }
     if(url.pathname==='/auth/google/callback'){
       const state=url.searchParams.get('state');
-      if(!state || state.length>100 || state!==cookies(req)['__Host-bf-login'])throw fail(400,'Сессия входа истекла. Попробуйте войти ещё раз.');
+      if(!state || state.length>100 || state!==cookies(req)[loginCookieName])throw fail(400,'Сессия входа истекла. Попробуйте войти ещё раз.');
       const row=db.transaction(()=>{const r=db.prepare('SELECT * FROM logins WHERE state=? AND expires>?').get(hash(state),now());db.prepare('DELETE FROM logins WHERE state=?').run(hash(state));return r;}).immediate();
-      res.setHeader('Set-Cookie',cookie('__Host-bf-login','',0));
+      res.setHeader('Set-Cookie',cookie(loginCookieName,'',0));
       if(!row || !url.searchParams.get('code'))throw fail(400,'Вход отменён или устарел. Попробуйте снова.');
       let payload;
       try { const{tokens}=await client.getToken({code:url.searchParams.get('code'),codeVerifier:row.verifier,redirect_uri:redirect});const ticket=await client.verifyIdToken({idToken:tokens.id_token,audience:clientId});payload=ticket.getPayload(); }
