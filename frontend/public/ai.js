@@ -24,8 +24,8 @@ function openAssistant() {
 }
 function refreshAIStatus() {
   const provider = document.querySelector('#ai-provider');
-  if (provider) provider.textContent = aiBusy ? 'ИИ обрабатывает запрос. Это может занять до 3 минут; текущая схема пока не меняется.' : !aiProvider ? 'Проверяем доступность модели…' : aiProvider.failed ? 'Не удалось проверить ИИ. Закройте и откройте помощника для повтора.' : aiProvider.configured ? 'Модель: ' + aiProvider.model + ' · ' + aiProvider.provider + (aiProvider.quota ? ' · Баланс: ' + Number(aiProvider.quota.credits).toFixed(1).replace('.0', '') + ' кредитов (' + aiProvider.quota.tokensRemaining.toLocaleString('ru-RU') + ' токенов) · Запросов сегодня: ' + aiProvider.quota.remaining + '/' + aiProvider.quota.limit : '') : 'ИИ не настроен на сервере. Раскладка доступна без ИИ.';
-  const notice = document.querySelector('.ai-provider-notice'); if (notice) notice.textContent = 'Описание и схема отправляются подключённому ИИ-провайдеру (' + (aiProvider?.provider || 'проверяем адрес') + '). Не указывайте пароли и личные данные. Запрос расходует дневной лимит и баланс API; при ошибке схемы возможна одна попытка исправления.';
+  if (provider) provider.textContent = aiBusy ? 'ИИ обрабатывает запрос. Это может занять до 3 минут; текущая схема пока не меняется.' : !aiProvider ? 'Проверяем доступность модели…' : aiProvider.failed ? 'Не удалось проверить ИИ. Закройте и откройте помощника для повтора.' : aiProvider.configured ? 'Модели: ' + [aiProvider.model, ...(aiProvider.fallbackModels || [])].join(' → ') + ' · ' + aiProvider.provider + (aiProvider.quota ? ' · Баланс: ' + Number(aiProvider.quota.credits).toFixed(1).replace('.0', '') + ' кредитов (' + aiProvider.quota.tokensRemaining.toLocaleString('ru-RU') + ' токенов) · Запросов сегодня: ' + aiProvider.quota.remaining + '/' + aiProvider.quota.limit : '') : 'ИИ не настроен на сервере. Раскладка доступна без ИИ.';
+  const notice = document.querySelector('.ai-provider-notice'); if (notice) notice.textContent = 'Описание и схема отправляются подключённому ИИ-провайдеру (' + (aiProvider?.provider || 'проверяем адрес') + '). Не указывайте пароли и личные данные. Запрос расходует дневной лимит и баланс API; при ошибке выполняется переход к следующей модели в пределах общего лимита токенов.';
   const submit = document.querySelector('#ai-submit'); if (submit) submit.disabled = aiBusy || !aiProvider?.configured || aiProvider?.quota?.remaining === 0 || aiProvider?.quota?.tokensRemaining === 0;
 }
 function renderAIChanges(parent) {
@@ -50,13 +50,15 @@ function applyAIResult() {
 
 }
 function hasAIChanges(result) { return !!result.movedNodeIds?.length || !result.changes || Object.values(result.changes).some(c => c.added.length || c.updated.length || c.removed.length); }
-async function applyAndSaveAI(download = aiDownloadProject) {
+async function applyAndSaveAI(download = aiDownloadProject, preview = true) {
   if (!applyAIResult()) return;
   const projectId = draft.id;
   if (dirty && !await saveProject()) return;
   if (aiAppliedSummary?.projectId === projectId) aiAppliedSummary.status = 'Изменения сохранены на сервере.';
   if (download) { const ready = await downloadProjectBundle(); if (ready && aiAppliedSummary?.projectId === projectId) aiAppliedSummary.status = 'Сохранено. Полный ZIP подготовлен для скачивания.'; } else notify('ИИ-сценарий сохранён. Проверьте его в чате справа.');
+  if (draft.id !== projectId) return;
   render();
+  if (preview) { closeAssistant(); resetPreview(); openWorkspace('testing', 'test'); }
 }
 function renderAssistant() {
   aiDialog.replaceChildren();
@@ -72,16 +74,16 @@ function renderAssistant() {
   if (aiMode !== 'question') { const options = element('div', 'ai-run-options'); for (const [label, value, change] of [['Применять и сохранять правки сразу', aiAutoApply, value => { aiAutoApply = value; }], ['После сохранения скачать полный проект ZIP', aiDownloadProject, value => { aiDownloadProject = value; }]]) { const row = element('label'); const input = element('input'); input.type = 'checkbox'; input.checked = value; input.disabled = aiBusy; input.onchange = () => change(input.checked); row.append(input, element('span', '', label)); options.append(row); } aiDialog.append(options); }
   const provider = element('p', 'ai-provider', 'Проверяем доступность модели…'); provider.id = 'ai-provider'; aiDialog.append(provider);
   const label = element('label', 'field'); label.append(element('span', '', aiMode === 'question' ? 'Что хотите узнать?' : aiMode === 'edit' ? 'Что изменить?' : 'Какого бота создаём?')); const input = element('textarea'); input.rows = 5; input.setAttribute('aria-label', 'Запрос к ИИ'); input.maxLength = 4000; input.placeholder = aiMode === 'question' ? 'Например: как добавить проверку email или почему эта ветка не запускается?' : aiMode === 'edit' ? 'Например: добавь сбор email перед подтверждением, остальные ветки не меняй.' : 'Например: бот записи на консультацию. Узнай имя и email, предложи два направления и покажи подтверждение.'; input.value = aiPrompt; input.disabled = aiBusy; input.oninput = () => { aiPrompt = input.value; }; label.append(input); aiDialog.append(label);
-  aiDialog.append(element('p', 'ai-privacy ai-provider-notice', 'Описание и схема отправляются подключённому ИИ-провайдеру (' + (aiProvider?.provider || 'адрес загружается') + '). Не указывайте пароли и личные данные. Запрос расходует дневной лимит и баланс API; при ошибке схемы возможна одна попытка исправления.'));
+  aiDialog.append(element('p', 'ai-privacy ai-provider-notice', 'Описание и схема отправляются подключённому ИИ-провайдеру (' + (aiProvider?.provider || 'адрес загружается') + '). Не указывайте пароли и личные данные. Запрос расходует дневной лимит и баланс API; при ошибке выполняется переход к следующей модели в пределах общего лимита токенов.'));
   if (!aiBusy && !aiResult) { const examples = element('div', 'ai-examples'); for (const prompt of aiMode === 'question' ? ['Как добавить проверку email?', 'Объясни, как работает текущий сценарий.'] : aiMode === 'edit' ? ['Добавь команду /helpme с краткой инструкцией, сохрани остальные ветки.', 'Добавь сбор имени перед приветствием и обращайся к пользователю по имени.'] : ['Бот записи: имя, email, выбор услуги и подтверждение.', 'Приветствие и две кнопки: О нас и Контакты.']) examples.append(button(prompt, () => { aiPrompt = prompt; input.value = prompt; input.focus(); }, 'text-button')); aiDialog.append(examples); }
   if (aiError) { const error = element('p', 'ai-error', aiError); error.setAttribute('role', 'alert'); aiDialog.append(error); }
   if (aiResult?.mode === 'question') { const answer = element('section', 'ai-answer'); answer.append(element('h3', '', 'Ответ помощника'), element('p', '', aiResult.answer)); aiDialog.append(answer); }
   else if (aiResult) {
-    const proposal = element('section', 'ai-proposal'); proposal.append(element('h3', '', aiResult.mode === 'edit' ? 'Предлагаемые изменения' : 'Новый сценарий'), element('p', '', aiResult.summary), element('p', 'muted', aiResult.nodes.length + ' блоков · ' + aiResult.edges.length + ' связей · ' + aiResult.variables.length + ' переменных'));
+    const proposal = element('section', 'ai-proposal'); proposal.append(element('h3', '', aiResult.mode === 'edit' ? 'Предлагаемые изменения' : 'Новый сценарий'), element('p', '', aiResult.summary), ...(aiResult.usage?.model ? [element('p', 'muted', 'Сценарий собрала модель: ' + aiResult.usage.model)] : []), element('p', 'muted', aiResult.nodes.length + ' блоков · ' + aiResult.edges.length + ' связей · ' + aiResult.variables.length + ' переменных'));
     renderAIChanges(proposal); if (aiResult.movedNodeIds?.length) proposal.append(element('p', 'muted', 'Изменится расположение блоков: ' + aiResult.movedNodeIds.length));
     for (const warning of aiResult.warnings || []) proposal.append(element('p', 'muted', warning.message));
     proposal.append(element('p', 'ai-privacy', aiResult.mode === 'edit' ? 'Будут применены и сохранены показанные изменения. Расположение меняется по запросу. Доступна отмена последнего действия.' : 'Применение заменит и сохранит текущую схему. Доступна отмена последнего действия.'));
-    const apply = button(aiResult.mode === 'edit' ? 'Применить изменения' : 'Заменить сценарий', () => {
+    const apply = button(aiResult.mode === 'edit' ? 'Применить и проверить' : 'Заменить и проверить', () => {
       return applyAndSaveAI();
     }, 'primary'); const stale = aiBaseSignature !== scenarioSignature(); const hasChanges = hasAIChanges(aiResult); apply.disabled = stale || !hasChanges; if (!hasChanges) { proposal.append(element('p', 'muted', 'Сценарий уже соответствует запросу — изменений нет.')); const download = button('Скачать текущий полный ZIP', () => applyAndSaveAI(true)); download.disabled = stale; proposal.append(download); } if (stale) proposal.append(element('p', 'ai-error', 'Черновик уже изменился. Подготовьте новое предложение.')); proposal.append(apply); aiDialog.append(proposal);
   }

@@ -57,7 +57,9 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, '..
         const balance = auth.credits(owner);
         if (!balance.tokensRemaining) return send(402, { message: 'Кредиты ИИ закончились.' });
         auth.reserve(owner);
-        const result = await assistant.generate(body?.project, body?.prompt, { mode: body?.mode, selectedNodeId: body?.selectedNodeId, maxTokens: balance.tokensRemaining });
+        let result;
+        try { result = await assistant.generate(body?.project, body?.prompt, { mode: body?.mode, selectedNodeId: body?.selectedNodeId, maxTokens: balance.tokensRemaining }); }
+        catch (problem) { if (problem.usage?.generatedTokens) auth.consumeTokens(owner, problem.usage.generatedTokens); throw problem; }
         result.usage = { ...result.usage, ...auth.consumeTokens(owner, result.usage?.generatedTokens || 0) };
         return send(200, result);
       }
