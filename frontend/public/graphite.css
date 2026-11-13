@@ -169,3 +169,20 @@ body.graphite #mobile-menu .workspace-menu-actions button { justify-content:flex
 body.graphite .react-flow__minimap { margin:10px; overflow:hidden; }
 body.graphite .react-flow__minimap svg { display:block; max-width:100%; }
 @media(max-width:650px) { body.graphite .react-flow__minimap { margin:8px; border-radius:7px; } }
+.welcome-demo { display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:56px; padding:56px 0; border-bottom:1px solid #38343f; }
+.welcome-demo h2 { margin:16px 0; font-size:28px; letter-spacing:-.7px; }
+.welcome-demo p { max-width:480px; color:#b5acc4; line-height:1.7; font-size:14px; }
+.welcome-calculator { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:24px; border:1px solid #45404f; border-radius:12px; background:#222127; min-width:0; }
+.welcome-calculator label { display:grid; gap:8px; min-width:0; color:#c5bfce; font-size:12px; }
+.welcome-calculator input,.welcome-calculator select { width:100%; min-width:0; min-height:44px; padding:10px; background:#19181e; color:#eeeaf5; border:1px solid #51485e; border-radius:6px; font:inherit; }
+.welcome-calculator button { align-self:end; min-height:44px; }
+.welcome-result { grid-column:1/-1; min-height:48px; padding:14px; border-radius:6px; background:#302a3c; color:#d8c7ff; overflow-wrap:anywhere; }
+body.graphite.is-welcome .welcome-steps { padding:36px 0; }
+body.graphite.is-welcome .welcome-steps h2 { font-size:16px; }
+body.graphite.is-welcome .welcome-steps p { font-size:13px; }
+@media(max-width:760px) {
+ .welcome-demo { grid-template-columns:1fr; gap:20px; padding:32px 0; }
+ .welcome-calculator { padding:16px; gap:12px; }
+}
+body.graphite.is-welcome,body.graphite.is-welcome .workspace,body.graphite.is-welcome main { background:#19191f; color:#f0edf5; }
+body.graphite.is-welcome .welcome-demo h2 { color:#f0edf5; }

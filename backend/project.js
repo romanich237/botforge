@@ -1,4 +1,4 @@
-const types = ['start', 'command', 'text', 'buttons', 'input', 'condition', 'end'];
+const types = ['start', 'command', 'text', 'buttons', 'input', 'condition', 'calculate', 'end'];
 function defaults() {
   return { version: 1, name: '', description: '', platform: 'telegram', nodes: [], edges: [], variables: [], behavior: { unknownCommand: true, unknownText: true, help: true, cancel: true, disableOldButtons: true, repeatQuestion: true, preventDoubleClick: true, ignoreCase: false, history: 'keep', deleteUser: false, typing: false, inputTimeout: false, timeoutSeconds: 60, timeoutText: 'Время ожидания истекло.', rateLimit: false, rateCount: 5, rateSeconds: 10, subscriptionChat: '', subscriptionMessage: 'Подпишитесь на канал и повторите попытку.', unknownCommandText: 'Неизвестная команда. Введите /help', unknownTextMessage: 'Не понимаю. Введите /help' } };
 }
@@ -20,7 +20,7 @@ function checkShape(p) {
     if (n.data.note?.length > 2000) return 'Заметка не должна превышать 2000 символов';
     if (n.type === 'command' && n.data.triggerText?.length > 200) return 'Триггер слишком длинный';
     if (n.type === 'input' && n.data.choices !== undefined && typeof n.data.choices !== 'string') return 'Некорректные варианты ввода';
-    for (const key of ['text', 'command', 'description', 'error', 'variable', 'value', 'operation', 'validation', 'placement', 'note', 'triggerText', 'triggerMode']) if (n.data[key] !== undefined && typeof n.data[key] !== 'string') return 'Некорректное поле блока: ' + key;
+    for (const key of ['text', 'command', 'description', 'error', 'variable', 'value', 'operation', 'validation', 'placement', 'note', 'triggerText', 'triggerMode', 'left', 'right']) if (n.data[key] !== undefined && typeof n.data[key] !== 'string') return 'Некорректное поле блока: ' + key;
     ids.add(n.id);
   }
   const outputs = new Set(); const edgeIds = new Set();
@@ -64,6 +64,11 @@ function validate(p) {
       if (!['eq', 'ne', 'contains', 'gt', 'lt'].includes(d.operation) || typeof d.value !== 'string' || !d.value.trim()) add('CONDITION', 'Заполните условие', n.id, 'value');
       if (['gt', 'lt'].includes(d.operation) && (p.variables.find(v => v.name === d.variable)?.type !== 'number' || !Number.isFinite(Number(d.value)))) add('CONDITION', 'Числовое сравнение требует число и числовую переменную', n.id, 'value');
     }
+    if (n.type === 'calculate') {
+      const numeric = name => p.variables.some(v => v.name === name && v.type === 'number');
+      const operand = value => typeof value === 'string' && (numeric(value) || /^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value) && Number.isFinite(Number(value)));
+      if (!numeric(d.variable) || !operand(d.left) || !operand(d.right) || !['add','subtract','multiply','divide'].includes(d.operation)) add('CALCULATE', 'Укажите числовую переменную результата, два числа или имени числовых переменных и операцию', n.id, 'variable');
+    }
     if (n.type === 'buttons') {
       if (d.placement && !['inline', 'keyboard'].includes(d.placement)) add('BUTTONS', 'Неверное расположение кнопок', n.id, 'placement');
       if (!Array.isArray(d.buttons) || !d.buttons.length) add('BUTTONS', 'Добавьте кнопки', n.id, 'buttons');
@@ -76,7 +81,7 @@ function validate(p) {
       }}
     }
     for (const value of [d.text, d.error]) if (typeof value === 'string') for (const match of value.matchAll(/\{([^{}]+)\}/g)) if (!variables.has(match[1])) add('VARIABLE', 'Неизвестная переменная: ' + match[1], n.id, 'text');
-    const outputs = n.type === 'condition' ? ['yes', 'no'] : n.type === 'buttons' ? (Array.isArray(d.buttons) ? d.buttons.filter(b => b?.action === 'transition').map(b => b.id) : []) : ['start', 'command', 'input'].includes(n.type) ? ['next'] : [];
+    const outputs = n.type === 'condition' ? ['yes', 'no'] : n.type === 'buttons' ? (Array.isArray(d.buttons) ? d.buttons.filter(b => b?.action === 'transition').map(b => b.id) : []) : ['start', 'command', 'input', 'calculate'].includes(n.type) ? ['next'] : [];
     for (const output of outputs) if (!p.edges.some(e => e.source === n.id && e.output === output)) add('TRANSITION', 'Настройте переход: ' + output, n.id, 'transition');
   }
   const triggers = new Set();

@@ -25,18 +25,22 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, '..
   const server = http.createServer(async (req, res) => {
     const send = (status, body) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(body)); };
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'");
     try {
       const url = new URL(req.url, 'http://localhost');
       if (await auth.handle(req, res, url)) return;
       if (!url.pathname.startsWith('/api/')) {
-        const entry = files[url.pathname];
+        const entry = Object.hasOwn(files, url.pathname) ? files[url.pathname] : null;
         if (!entry || req.method !== 'GET') return send(404, { message: 'Не найдено' });
         res.writeHead(200, { 'Content-Type': entry[1], 'Cache-Control': 'no-cache, must-revalidate' });
         return res.end(await fs.readFile(path.join(__dirname, '..', 'frontend', 'public', entry[0])));
       }
       if (!['GET', 'POST', 'PUT', 'DELETE'].includes(req.method)) return send(405, { message: 'Метод не поддерживается' });
       if (req.headers.origin && !auth.acceptsOrigin(req.headers.origin) && (publicOrigin || auth.enabled || req.headers.origin !== 'http://' + req.headers.host)) return send(403, { message: 'Недопустимый источник запроса' });
+      if (!['GET'].includes(req.method) && req.headers['sec-fetch-site'] === 'cross-site') return send(403, { message: 'Недопустимый источник запроса' });
       const user = auth.user(req);
       if (!user) return send(401, { message: 'Войдите через Google, чтобы открыть проекты' });
       const owner = user.id;
