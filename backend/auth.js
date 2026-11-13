@@ -13,8 +13,15 @@ function createAuth(dataDir, config = {}) {
   const origin = config.origin ?? process.env.PUBLIC_ORIGIN;
   const googleEnabled = false; // Google OAuth temporarily disabled; email/password is the active provider.
   const enabled = true;
-  const origins = new Set([origin, ...(config.allowedOrigins ?? process.env.ALLOWED_ORIGINS ?? '').split(',')].filter(Boolean));
-  for (const value of origins) { const u = new URL(value); if (u.origin !== value || !['http:', 'https:'].includes(u.protocol) || (enabled && u.protocol !== 'https:')) throw Error('Недопустимый адрес ALLOWED_ORIGINS'); }
+  const origins = new Set([origin, ...(config.allowedOrigins ?? process.env.ALLOWED_ORIGINS ?? '').split(',')].map(value => String(value || '').trim()).filter(Boolean));
+  for (const value of origins) {
+    let u;
+    try { u = new URL(value); } catch { throw Error('Недопустимый адрес ALLOWED_ORIGINS: ' + value); }
+    const local = ['localhost', '127.0.0.1', '[::1]'].includes(u.hostname);
+    if (u.origin !== value || !['http:', 'https:'].includes(u.protocol) || (u.protocol === 'http:' && !local)) {
+      throw Error('Недопустимый адрес ALLOWED_ORIGINS: ' + value);
+    }
+  }
   if (origin && new URL(origin).hostname !== 'localhost' && !['127.0.0.1','[::1]'].includes(new URL(origin).hostname) && new URL(origin).protocol !== 'https:') throw Error('Для публичной авторизации нужен HTTPS');
   const ownerSub = config.ownerSub ?? process.env.GOOGLE_OWNER_SUB;
   const redirect = googleEnabled ? new URL('/auth/google/callback',origin).href : null;
@@ -29,10 +36,12 @@ function createAuth(dataDir, config = {}) {
   const filename = path.join(dataDir,'auth.sqlite'), db = new Database(filename); fs.chmodSync(filename,0o600);
   db.pragma('journal_mode = WAL'); db.pragma('busy_timeout = 5000');
   db.exec('CREATE TABLE IF NOT EXISTS email_users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, created_at INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS logins (state TEXT PRIMARY KEY, verifier TEXT NOT NULL, nonce TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS usage (day TEXT NOT NULL, owner TEXT NOT NULL, requests INTEGER NOT NULL, PRIMARY KEY(day,owner)); CREATE TABLE IF NOT EXISTS ai_credits (owner TEXT PRIMARY KEY, tokens_remaining INTEGER NOT NULL CHECK(tokens_remaining >= 0))');
-  const cookie = (name,value,seconds) => name+'='+value+'; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age='+seconds;
+  const secureCookie = origin ? new URL(origin).protocol === 'https:' : true;
+  const sessionCookieName = secureCookie ? '__Host-bf-session' : 'bf-session';
+  const cookie = (name,value,seconds) => name+'='+value+'; Path=/; HttpOnly;'+(secureCookie ? ' Secure;' : '')+' SameSite=Lax; Max-Age='+seconds;
   const cookies = req => Object.fromEntries((req.headers.cookie || '').split(';').map(s => s.trim().split('=')));
   const clean = () => { db.prepare('DELETE FROM sessions WHERE expires < ?').run(now()); db.prepare('DELETE FROM logins WHERE expires < ?').run(now()); db.prepare('DELETE FROM usage WHERE day < ?').run(new Date(now()-7*86400000).toISOString().slice(0,10)); };
-  function user(req) { const value=cookies(req)['__Host-bf-session']; if (!value || value.length > 100) return null; const row=db.prepare('SELECT user FROM sessions WHERE token=? AND expires>?').get(hash(value),now()); return row ? JSON.parse(row.user) : null; }
+  function user(req) { const value=cookies(req)[sessionCookieName]; if (!value || value.length > 100) return null; const row=db.prepare('SELECT user FROM sessions WHERE token=? AND expires>?').get(hash(value),now()); return row ? JSON.parse(row.user) : null; }
   const ensureCredits = db.prepare('INSERT INTO ai_credits(owner,tokens_remaining) VALUES(?,?) ON CONFLICT(owner) DO NOTHING');
   function credits(owner) { ensureCredits.run(owner, startingCredits * tokensPerCredit); const tokensRemaining=db.prepare('SELECT tokens_remaining FROM ai_credits WHERE owner=?').get(owner).tokens_remaining; return { credits: tokensRemaining / tokensPerCredit, tokensRemaining, tokensPerCredit }; }
   function consumeTokens(owner, tokens) { if (!Number.isSafeInteger(tokens) || tokens < 0) throw Error('Некорректное списание токенов'); ensureCredits.run(owner, startingCredits * tokensPerCredit); db.prepare('UPDATE ai_credits SET tokens_remaining=MAX(0,tokens_remaining-?) WHERE owner=?').run(tokens,owner); return credits(owner); }
@@ -72,11 +81,11 @@ function createAuth(dataDir, config = {}) {
       }
       const u={id:record.id,name:email.split('@')[0].slice(0,100),email};
       const value=token(); db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(hash(value),JSON.stringify(u),now()+7*86400000);
-      res.setHeader('Set-Cookie',cookie('__Host-bf-session',value,7*86400));
+      res.setHeader('Set-Cookie',cookie(sessionCookieName,value,7*86400));
       return json(res,200,{user:{name:u.name,email:u.email}});
     }
     if(url.pathname.startsWith('/auth/google')) throw fail(404,'Вход через Google временно отключён');
-    if(url.pathname==='/auth/logout' && req.method==='POST'){if(!origins.has(req.headers.origin))throw fail(403,'Недопустимый источник запроса');const value=cookies(req)['__Host-bf-session'];if(value)db.prepare('DELETE FROM sessions WHERE token=?').run(hash(value));res.setHeader('Set-Cookie',cookie('__Host-bf-session','',0));res.end('{}');return true;}
+    if(url.pathname==='/auth/logout' && req.method==='POST'){if(!origins.has(req.headers.origin))throw fail(403,'Недопустимый источник запроса');const value=cookies(req)['__Host-bf-session'];if(value)db.prepare('DELETE FROM sessions WHERE token=?').run(hash(value));res.setHeader('Set-Cookie',cookie(sessionCookieName,'',0));res.end('{}');return true;}
     if(req.method!=='GET')throw fail(405,'Метод не поддерживается');
     rate(req); clean();
     if(url.pathname==='/auth/google'){
