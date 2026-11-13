@@ -870,3 +870,15 @@ body.is-welcome .welcome-bottom { padding-bottom:30px; }
   body.is-welcome .landing-question summary { font-size:14px; }
 }
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+
+/* Email/password sign-in */
+.email-auth-dialog { width:min(440px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); padding:0; border:1px solid #51465b; border-radius:16px; background:#25212b; color:#f5effa; box-shadow:0 24px 90px #0008; }
+.email-auth-dialog::backdrop { background:#09070ac9; backdrop-filter:blur(4px); }
+.email-auth-form { display:flex; flex-direction:column; gap:15px; padding:30px; }
+.email-auth-form h2 { margin:0; font-size:25px; }
+.email-auth-form p { margin:0; line-height:1.5; }
+.email-auth-form input { box-sizing:border-box; width:100%; min-height:46px; padding:12px 14px; border:1px solid #61566d; border-radius:8px; background:#1b1921; color:#fff; font:inherit; }
+.email-auth-form input:focus-visible { outline:2px solid #b8a3f8; outline-offset:2px; }
+.email-auth-form button { min-height:43px; border-radius:8px; }
+.email-auth-form .ai-error:empty { display:none; }
+@media(max-width:550px) { .email-auth-form { padding:22px; } }
