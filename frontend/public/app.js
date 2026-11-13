@@ -370,7 +370,7 @@ function renderBuilder(page = 'builder') {
   if (!testing && validationResult) renderValidationPanel(inspector);
   const picker = element('label', 'field block-picker'); picker.append(element('span', '', 'Выберите блок')); const select = element('select'); const placeholder = element('option', '', 'Выберите блок на схеме или в списке'); placeholder.value = ''; select.append(placeholder);
   for (const n of draft.nodes) { const option = element('option', '', blockNames[n.type] + ' · ' + (n.data.text || n.data.command || n.id.slice(0, 6)).slice(0, 40)); option.value = n.id; select.append(option); }
-  select.value = selectedNode || ''; select.onchange = () => { selectedNode = select.value || null; selectedNodeIds = new Set(selectedNode ? [selectedNode] : []); selectedEdgeIds.clear(); render(); }; picker.append(select); if (!testing) inspector.append(picker);
+  select.value = selectedNode || ''; select.onchange = () => { selectedNode = select.value || null; focusNode = selectedNode; selectedNodeIds = new Set(selectedNode ? [selectedNode] : []); selectedEdgeIds.clear(); render(); }; picker.append(select); if (!testing) inspector.append(picker);
   if (testing) renderChat(inspector);
   const node = draft.nodes.find(n => n.id === selectedNode);
   if (testing) {}
@@ -530,7 +530,19 @@ function render() {
 }
 const mobileMenu = document.querySelector('#mobile-menu');
 mobileMenu.append(document.querySelector('nav').cloneNode(true));
-document.querySelector('#open-mobile-menu').onclick = () => mobileMenu.showModal();
+const workspaceMenuButton = document.querySelector('#open-mobile-menu');
+workspaceMenuButton.replaceChildren(icon('list'), document.createTextNode('Меню'));
+document.querySelector('.sidebar').insertBefore(workspaceMenuButton, document.querySelector('.sidebar nav'));
+workspaceMenuButton.onclick = () => {
+  mobileMenu.querySelector('.workspace-menu-actions')?.remove();
+  const actions = document.querySelector('.editor-actions');
+  if (actions) {
+    const section = element('section', 'workspace-menu-actions'); section.append(element('h3', '', 'Действия со схемой'));
+    for (const original of actions.querySelectorAll('button')) { const item = button('', () => { mobileMenu.close(); return original.onclick(); }); item.append(...[...original.childNodes].map(node => node.cloneNode(true))); item.disabled = original.disabled; section.append(item); }
+    mobileMenu.insertBefore(section, mobileMenu.querySelector('nav'));
+  }
+  mobileMenu.showModal();
+};
 document.querySelector('#close-mobile-menu').onclick = () => mobileMenu.close();
 mobileMenu.addEventListener('click', event => { if (event.target.closest('a')) mobileMenu.close(); if (event.target === mobileMenu) { const box = mobileMenu.getBoundingClientRect(); if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) mobileMenu.close(); } });
 window.matchMedia('(max-width: 650px)').addEventListener('change', () => mobileMenu.close());

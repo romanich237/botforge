@@ -16,9 +16,17 @@ function FocusNode({ id }) {
   const ready = useNodesInitialized();
   const { fitView } = useReactFlow();
   useEffect(() => {
-    if (ready && id) fitView({ nodes: [{ id }], padding: 0.8, maxZoom: 1.2, duration: 250 });
+    if (ready && id) fitView({ nodes: [{ id }], padding: 0.8, maxZoom: 1.2, duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 450 });
   }, [ready, id, fitView]);
   return null;
+}
+function ScenarioMiniMap() {
+  const { fitView, setCenter } = useReactFlow();
+  const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 450;
+  return <MiniMap pannable zoomable ariaLabel="Мини-карта: нажмите блок для перехода"
+    onNodeClick={(event, node) => { event.stopPropagation(); fitView({ nodes: [{ id: node.id }], padding: .8, maxZoom: 1.2, duration }); }}
+    onClick={(_, position) => setCenter(position.x, position.y, { duration })}
+    nodeColor={node => node.data.type === 'start' ? '#56b897' : '#a9bdf9'} maskColor="#f2f5fa99"/>;
 }
 const nodeTypes = { scenario: ScenarioNode };
 window.BotForgeCanvas = {
@@ -60,7 +68,7 @@ window.BotForgeCanvas = {
         <FocusNode id={callbacks.focus}/>
         <Background color="#d6dce9" gap={20} size={1.2}/>
         <Controls showInteractive={false}/>
-        <MiniMap pannable zoomable nodeColor={node => node.data.type === 'start' ? '#56b897' : '#a9bdf9'} maskColor="#f2f5fa99"/>
+        <ScenarioMiniMap/>
       </ReactFlow>;
     }
     root.render(<Canvas/>);
