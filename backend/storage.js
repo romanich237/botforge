@@ -25,6 +25,7 @@ function createStorage(dataDir) {
       CREATE INDEX IF NOT EXISTS projects_updated ON projects(updated_at DESC);
     `);
     if (!db.pragma('table_info(projects)').some(c => c.name === 'owner_id')) db.exec("ALTER TABLE projects ADD COLUMN owner_id TEXT NOT NULL DEFAULT 'legacy'");
+    db.exec('CREATE INDEX IF NOT EXISTS projects_owner_updated ON projects(owner_id, updated_at DESC)');
     const insert = db.prepare('INSERT INTO projects (id, revision, updated_at, document, owner_id) VALUES (?, ?, ?, ?, ?)');
     const insertProject = (project, owner = 'legacy') => insert.run(project.id, project.revision, project.updatedAt, JSON.stringify(project), owner);
 
@@ -49,6 +50,12 @@ function createStorage(dataDir) {
     const list = db.prepare('SELECT document FROM projects WHERE owner_id = ? ORDER BY updated_at DESC, id');
     const update = db.prepare('UPDATE projects SET revision = ?, updated_at = ?, document = ? WHERE id = ? AND revision = ? AND owner_id = ?');
     const remove = db.prepare('DELETE FROM projects WHERE id = ? AND owner_id = ?');
+    const usage = db.prepare('SELECT COUNT(*) AS count, COALESCE(SUM(length(CAST(document AS BLOB))),0) AS bytes FROM projects WHERE owner_id = ?');
+    const capacity = (owner, document, previous) => {
+      const current = usage.get(owner), size = Buffer.byteLength(document), oldSize = previous === undefined ? 0 : Buffer.byteLength(previous);
+      if (previous === undefined && current.count >= 200 || size > oldSize && current.bytes + size - oldSize > 20 * 1024 * 1024) throw Object.assign(Error('Лимит хранения: 200 проектов и 20 МБ на пользователя. Уменьшите проект или удалите ненужные копии.'), { status: 413 });
+    };
+
     return {
       list: (owner = 'legacy') => list.all(owner).map(row => JSON.parse(row.document)),
       get(id, owner = 'legacy') {
@@ -56,11 +63,14 @@ function createStorage(dataDir) {
         if (!row) throw notFound();
         return JSON.parse(row.document);
       },
-      create(project, owner = 'legacy') { insertProject(project, owner); return project; },
+      create(project, owner = 'legacy') { return db.transaction(() => { capacity(owner, JSON.stringify(project)); insertProject(project, owner); return project; }).immediate(); },
       update(id, body, owner = 'legacy') {
         if (!Number.isSafeInteger(body.revision) || body.revision < 1) throw Object.assign(Error('Некорректная ревизия проекта'), { status: 400 });
         return db.transaction(() => {
           const project = { ...body, id, revision: body.revision + 1, updatedAt: Date.now() };
+          const existing = read.get(id, owner);
+          if (!existing) throw notFound();
+          capacity(owner, JSON.stringify(project), existing.document);
           const result = update.run(project.revision, project.updatedAt, JSON.stringify(project), id, body.revision, owner);
           if (!result.changes) {
             if (!read.get(id, owner)) throw notFound();

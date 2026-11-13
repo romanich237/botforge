@@ -3,6 +3,7 @@ const Database = require('better-sqlite3');
 const {randomBytes,createHash} = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const {isIP} = require('node:net');
 const hash = value => createHash('sha256').update(value).digest('hex');
 const token = () => randomBytes(32).toString('base64url');
 const fail = (status,message) => Object.assign(Error(message),{status});
@@ -39,7 +40,10 @@ function createAuth(dataDir, config = {}) {
   function quota(owner) { const day=new Date(now()).toISOString().slice(0,10); const used=db.prepare('SELECT requests FROM usage WHERE day=? AND owner=?').get(day,owner)?.requests || 0; const total=db.prepare('SELECT COALESCE(SUM(requests),0) n FROM usage WHERE day=?').get(day).n; return {limit:daily,remaining:Math.max(0,Math.min(daily-used,globalDaily-total)),resetAt:new Date(Date.parse(day)+86400000).toISOString(),...credits(owner)}; }
   const reserve = db.transaction(owner => { clean(); const q=quota(owner); if (!q.remaining) throw fail(429,'Лимит ИИ на сегодня исчерпан. Запросы обновятся в 00:00 UTC.'); db.prepare('INSERT INTO usage(day,owner,requests) VALUES(?,?,1) ON CONFLICT(day,owner) DO UPDATE SET requests=requests+1').run(new Date(now()).toISOString().slice(0,10),owner); });
   const attempts = new Map();
-  function rate(req) { const key=req.socket.remoteAddress, time=now(); for(const[k,v]of attempts)if(v.until<time)attempts.delete(k); const record=attempts.get(key)||{count:0,until:time+60000}; if(attempts.size>1000 || ++record.count>20)throw fail(429,'Слишком много попыток входа. Подождите минуту.'); attempts.set(key,record); }
+  function rate(req) { const remote=req.socket.remoteAddress;
+    const forwarded=req.headers['x-real-ip'];
+    const key=['127.0.0.1','::1','::ffff:127.0.0.1'].includes(remote) && typeof forwarded==='string' && isIP(forwarded) ? forwarded : remote;
+    const time=now(); for(const[k,v]of attempts)if(v.until<time)attempts.delete(k); const record=attempts.get(key)||{count:0,until:time+60000}; if(attempts.size>1000 || ++record.count>20)throw fail(429,'Слишком много попыток входа. Подождите минуту.'); attempts.set(key,record); }
   async function handle(req,res,url) {
     if (!url.pathname.startsWith('/auth/')) return false;
     res.setHeader('Cache-Control','no-store'); res.setHeader('Referrer-Policy','no-referrer');

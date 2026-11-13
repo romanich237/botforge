@@ -93,7 +93,7 @@ function renderProjects() {
   sort.value = sessionStorage.getItem('botforge.sort') || 'updated-desc';
   toolbar.append(search, sort, element('span', 'project-count', projects.length + ' проектов')); main.append(toolbar);
 
-  const grid = element('div', 'project-grid row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 d-flex gap-0'); main.append(grid);
+  const grid = element('div', 'project-grid'); main.append(grid);
   const sortedProjects = () => [...projects]
     .filter(project => project.name.toLocaleLowerCase().includes(search.value.trim().toLocaleLowerCase()))
     .sort((left, right) => {
