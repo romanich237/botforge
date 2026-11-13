@@ -85,7 +85,7 @@ function createAuth(dataDir, config = {}) {
       return json(res,200,{user:{name:u.name,email:u.email}});
     }
     if(url.pathname.startsWith('/auth/google')) throw fail(404,'Вход через Google временно отключён');
-    if(url.pathname==='/auth/logout' && req.method==='POST'){if(!origins.has(req.headers.origin))throw fail(403,'Недопустимый источник запроса');const value=cookies(req)['__Host-bf-session'];if(value)db.prepare('DELETE FROM sessions WHERE token=?').run(hash(value));res.setHeader('Set-Cookie',cookie(sessionCookieName,'',0));res.end('{}');return true;}
+    if(url.pathname==='/auth/logout' && req.method==='POST'){if(!origins.has(req.headers.origin))throw fail(403,'Недопустимый источник запроса');const value=cookies(req)[sessionCookieName];if(value)db.prepare('DELETE FROM sessions WHERE token=?').run(hash(value));res.setHeader('Set-Cookie',cookie(sessionCookieName,'',0));res.end('{}');return true;}
     if(req.method!=='GET')throw fail(405,'Метод не поддерживается');
     rate(req); clean();
     if(url.pathname==='/auth/google'){
@@ -105,7 +105,7 @@ function createAuth(dataDir, config = {}) {
       if(!payload?.sub || payload.nonce!==row.nonce || payload.email_verified!==true)throw fail(403,'Google не подтвердил учётную запись');
       const u={id:payload.sub===ownerSub?'legacy':payload.sub,name:String(payload.name||payload.email).slice(0,100),email:payload.email};
       const value=token(); db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(hash(value),JSON.stringify(u),now()+7*86400000);
-      res.setHeader('Set-Cookie',[cookie('__Host-bf-login','',0),cookie('__Host-bf-session',value,7*86400)]);res.writeHead(302,{Location:'/#projects'});res.end();return true;
+      res.setHeader('Set-Cookie',[cookie('__Host-bf-login','',0),cookie(sessionCookieName,value,7*86400)]);res.writeHead(302,{Location:'/#projects'});res.end();return true;
     }
     throw fail(404,'Не найдено');
   }
