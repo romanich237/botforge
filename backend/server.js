@@ -46,7 +46,7 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, '..
       if (req.headers.origin && !auth.acceptsOrigin(req.headers.origin) && (publicOrigin || auth.enabled || req.headers.origin !== 'http://' + req.headers.host)) return send(403, { message: 'Недопустимый источник запроса' });
       if (!['GET'].includes(req.method) && req.headers['sec-fetch-site'] === 'cross-site') return send(403, { message: 'Недопустимый источник запроса' });
       const user = auth.user(req);
-      if (!user) return send(401, { message: 'Войдите через Google, чтобы открыть проекты' });
+      if (!user) return send(401, { message: 'Войдите по электронной почте, чтобы открыть проекты' });
       const owner = user.id;
       if (url.pathname === '/api/ai/status' && req.method === 'GET') return send(200, { ...assistant.status(), quota: auth.quota(owner) });
       let body;
