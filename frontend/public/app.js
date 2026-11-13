@@ -532,7 +532,8 @@ function showEmailAuth() {
     const submit = document.createElement('button'); submit.type='submit'; submit.className='primary'; submit.textContent=register?'Создать аккаунт':'Войти';
     const toggle = button(register?'Уже есть аккаунт? Войти':'Нет аккаунта? Зарегистрироваться',()=>{register=!register;draw();},'text-button');
     const cancel = button('Закрыть',()=>dialog.close(),'text-button');
-    form.append(heading,info,email,password,message,submit,toggle,cancel);
+    const google = button('Продолжить с Google', () => { location.href='/auth/google'; }, 'secondary');
+    form.append(heading,info,email,password,message,submit,google,toggle,cancel);
     form.addEventListener('submit',async event=>{event.preventDefault(); submit.disabled=true; message.textContent=''; try { const response=await fetch(register?'/auth/register':'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.value,password:password.value})}); const data=await response.json(); if(!response.ok)throw Error(data.message||'Не удалось войти'); location.href='/#projects'; location.reload(); } catch(e){message.textContent=e.message;submit.disabled=false;} });
     dialog.append(form); email.focus();
   };
