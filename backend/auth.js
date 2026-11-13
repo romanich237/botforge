@@ -14,6 +14,7 @@ function createAuth(dataDir, config = {}) {
   const origins = new Set([origin, ...(config.allowedOrigins ?? process.env.ALLOWED_ORIGINS ?? '').split(',')].filter(Boolean));
   for (const value of origins) { const u = new URL(value); if (u.origin !== value || !['http:', 'https:'].includes(u.protocol) || (enabled && u.protocol !== 'https:')) throw Error('Недопустимый адрес ALLOWED_ORIGINS'); }
   if (!!clientId !== !!clientSecret || (process.env.GOOGLE_AUTH_REQUIRED === '1' && !enabled)) throw Error('Укажите GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET вместе');
+  if (origin && new URL(origin).hostname !== 'localhost' && !['127.0.0.1','[::1]'].includes(new URL(origin).hostname) && !enabled) throw Error('Для публичного сайта необходимо настроить Google-вход');
   if (enabled && (!origin || new URL(origin).protocol !== 'https:')) throw Error('Для Google-входа нужен PUBLIC_ORIGIN с HTTPS');
   const ownerSub = config.ownerSub ?? process.env.GOOGLE_OWNER_SUB;
   const redirect = enabled ? new URL('/auth/google/callback',origin).href : null;

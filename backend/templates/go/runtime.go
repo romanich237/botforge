@@ -17,6 +17,8 @@ type Button struct {
 	URL    string `json:"url"`
 }
 type NodeData struct {
+ Left string `json:"left"`
+ Right string `json:"right"`
 	Text        string   `json:"text"`
 	Command     string   `json:"command"`
 	TriggerText string `json:"triggerText"`
@@ -249,6 +251,20 @@ func (s *Session) run(id string, now int64) []Event {
 			s.Deadline = nil
 			break
 		}
+		if n.Type == "calculate" {
+            operand := func(value string) (float64, bool) {
+                if v, exists := s.Values[value]; exists { n, ok := v.(float64); return n, ok }
+                n, err := strconv.ParseFloat(value,64); return n, err == nil
+            }
+            a, okA := operand(d.Left); b, okB := operand(d.Right)
+            result := math.NaN()
+            switch d.Operation { case "add": result=a+b; case "subtract": result=a-b; case "multiply": result=a*b; case "divide": result=a/b }
+            if !okA || !okB || math.IsNaN(result) || math.IsInf(result,0) {
+                s.Waiting=""; s.Deadline=nil
+                events=append(events,Event{"type":"error","text":"Не удалось вычислить: проверьте числа и деление на ноль.","nodeId":id}); break
+            }
+            s.Values[d.Variable]=result
+        }
 		if n.Type == "condition" {
 			left := s.Values[d.Variable]
 			yes := false

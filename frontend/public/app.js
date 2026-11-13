@@ -2,7 +2,7 @@ const main = document.querySelector('#main');
 const dialog = document.querySelector('#create-dialog');
 const storageKey = 'botforge.projects.v1';
 const titles = { projects: 'Мои проекты', builder: 'Конструктор', behavior: 'Поведение бота', variables: 'Переменные', testing: 'Тестирование', export: 'Экспорт кода', settings: 'Настройки', guide: 'Как пользоваться' };
-const blockNames = { start: 'Старт', command: 'Команда', text: 'Текст', buttons: 'Кнопки', input: 'Ввод данных', condition: 'Условие', end: 'Завершение' };
+const blockNames = { start: 'Старт', command: 'Команда', text: 'Текст', buttons: 'Кнопки', input: 'Ввод данных', condition: 'Условие', calculate: 'Вычисление', end: 'Завершение' };
 let disposeCanvas = null, canvasViewport = null, editorTab = 'canvas';
 const guideDialog = document.querySelector('#guide-dialog');
 let guideStep = 0;
@@ -158,6 +158,7 @@ const blockTips = {
   text: 'Сообщение бота. Используйте {имя}, чтобы подставить значение переменной.',
   buttons: 'Сообщение с вариантами ответа. Каждая кнопка ведёт к своему блоку или открывает ссылку.',
   input: 'Вопрос пользователю. Ответ сохраняется в выбранную переменную после проверки.',
+  calculate: 'Считает результат из двух чисел или числовых переменных.',
   condition: 'Проверяет переменную и направляет диалог в ветку «Да» или «Нет».',
   end: 'Завершает текущую ветку. Переход к следующему блоку не нужен.'
 };
@@ -201,7 +202,7 @@ function renderGuide(target = main) {
 function outputs(node) { if (node.type === 'end') return []; if (node.type === 'condition') return [['yes', 'Да'], ['no', 'Нет']]; if (node.type === 'buttons') return (node.data.buttons || []).filter(b => b.action === 'transition').map(b => [b.id, b.label]); return [['next', 'Далее']]; }
 function addNode(type, position) {
   if (!Object.hasOwn(blockNames, type) || (type === 'start' && draft.nodes.some(n => n.type === 'start'))) return;
-  const id = crypto.randomUUID(); draft.nodes.push({ id, type, x: position?.x ?? draft.nodes.length % 3 * 320, y: position?.y ?? Math.floor(draft.nodes.length / 3) * 240, data: { text: '', command: '', variable: '', validation: 'text', error: 'Проверьте введённое значение', operation: 'eq', value: '', placement: 'inline', buttons: [] } }); selectedNode = id; selectedNodeIds = new Set([id]); selectedEdgeIds.clear(); focusNode = position ? null : id; changed(); openWorkspace('builder', 'properties');
+  const id = crypto.randomUUID(); draft.nodes.push({ id, type, x: position?.x ?? draft.nodes.length % 3 * 320, y: position?.y ?? Math.floor(draft.nodes.length / 3) * 240, data: { text: '', command: '', variable: '', validation: 'text', error: 'Проверьте введённое значение', operation: type === 'calculate' ? 'add' : 'eq', left: '', right: '', value: '', placement: 'inline', buttons: [] } }); selectedNode = id; selectedNodeIds = new Set([id]); selectedEdgeIds.clear(); focusNode = position ? null : id; changed(); openWorkspace('builder', 'properties');
 }
 function undoEditor() { if (!editHistory.undo(draft)) return notify('Нечего отменять.'); selectedNode = null; selectedNodeIds.clear(); selectedEdgeIds.clear(); changedWithoutHistory(); render(); }
 function redoEditor() { if (!editHistory.redo(draft)) return notify('Нечего повторять.'); selectedNode = null; selectedNodeIds.clear(); selectedEdgeIds.clear(); changedWithoutHistory(); render(); }
@@ -343,12 +344,12 @@ function renderBuilder(page = 'builder') {
   main.append(mobileTabs);
   const builder = element('section', 'builder editor-shell tab-' + (!['builder','testing'].includes(page) ? 'properties' : page === 'testing' ? 'test' : editorTab));
   const library = element('aside', 'library'); library.append(element('div', 'panel-eyebrow', 'ИНСТРУМЕНТЫ'), element('h2', '', 'Блоки сценария'), element('p', 'muted', 'Перетащите на схему или нажмите'));
-  const icons = { start: 'play', command: 'braces', text: 'text', buttons: 'list', input: 'text-cursor-input', condition: 'git-branch', end: 'square' };
+  const icons = { start: 'play', command: 'braces', text: 'text', buttons: 'list', input: 'text-cursor-input', condition: 'git-branch', calculate: 'braces', end: 'square' };
   const levels = element('div', 'library-levels');
   for (const [value, label] of [[false, 'Основные'], [true, 'Расширенные']]) { const b = button(label, () => { advancedBlocks = value; render(); }, advancedBlocks === value ? 'active' : ''); b.setAttribute('aria-pressed', String(advancedBlocks === value)); levels.append(b); } library.append(levels);
-  for (const [type, name] of Object.entries(blockNames).filter(([type]) => advancedBlocks ? ['command', 'input', 'condition', 'end'].includes(type) : ['start', 'text', 'buttons'].includes(type))) {
+  for (const [type, name] of Object.entries(blockNames).filter(([type]) => advancedBlocks ? ['command', 'input', 'condition', 'calculate', 'end'].includes(type) : ['start', 'text', 'buttons'].includes(type))) {
     const b = button('', () => addNode(type), 'library-block'); b.dataset.blockType = type;
-    const copy = element('span', 'library-copy'); copy.append(element('strong', '', name), element('small', '', {start:'Начало разговора',text:'Ответ вашего бота',buttons:'Выбор пользователя',command:'Отдельная команда',input:'Сохранить ответ',condition:'Разделить по условию',end:'Закончить разговор'}[type]));
+    const copy = element('span', 'library-copy'); copy.append(element('strong', '', name), element('small', '', {start:'Начало разговора',text:'Ответ вашего бота',buttons:'Выбор пользователя',command:'Отдельная команда',input:'Сохранить ответ',condition:'Разделить по условию',calculate:'Посчитать результат',end:'Закончить разговор'}[type]));
     const symbol = element('span', 'block-symbol symbol-' + type); symbol.append(icon(icons[type])); const grip = element('span', 'add-symbol'); grip.append(icon('grip-vertical')); b.append(symbol, copy, grip); b.disabled = type === 'start' && draft.nodes.some(n => n.type === 'start'); b.draggable = !b.disabled;
     b.ondragstart = event => { event.dataTransfer.setData('application/botforge-block', type); event.dataTransfer.effectAllowed = 'copy'; }; b.title = blockTips[type]; b.setAttribute('aria-label', 'Добавить блок «' + name + '»'); library.append(b);
   }
@@ -429,6 +430,14 @@ function renderProperties(n, target = main) {
   if (n.type === 'command') { field(panel, 'Команда', d.command, v => { d.command = v; }); field(panel, 'Описание для /help', d.description, v => { d.description = v; }); field(panel, 'Текстовый триггер', d.triggerText || '', v => { d.triggerText = v; }); field(panel, 'Совпадение', d.triggerMode || 'exact', v => { d.triggerMode = v; }, [['exact', 'Точное'], ['contains', 'Содержит']]); }
   if (['input', 'condition'].includes(n.type)) field(panel, 'Переменная', d.variable, v => { d.variable = v; }, [['', 'Выберите переменную'], ...draft.variables.map(v => [v.name, v.name])]);
   if (n.type === 'input') { field(panel, 'Проверка ввода', d.validation, v => { d.validation = v; }, [['text', 'Текст'], ['number', 'Число'], ['email', 'Email'], ['choice', 'Вариант из списка']]); field(panel, 'Варианты через запятую', d.choices, v => { d.choices = v; }); field(panel, 'Текст ошибки', d.error, v => { d.error = v; }); }
+  if (n.type === 'calculate') {
+    const numbers = draft.variables.filter(v => v.type === 'number').map(v => [v.name,v.name]);
+    field(panel, 'Результат в переменную', d.variable, v => { d.variable=v; }, [['','Выберите переменную'],...numbers]);
+    field(panel, 'Первое число или имя переменной', d.left, v => { d.left=v; });
+    field(panel, 'Операция', d.operation, v => { d.operation=v; }, [['add','Сложить +'],['subtract','Вычесть −'],['multiply','Умножить ×'],['divide','Разделить ÷']]);
+    field(panel, 'Второе число или имя переменной', d.right, v => { d.right=v; });
+    panel.append(element('p','muted','Сначала соберите числа блоками ввода. Для цепочки вычислений соедините несколько таких блоков.'));
+  }
   if (n.type === 'condition') { field(panel, 'Операция', d.operation, v => { d.operation = v; }, [['eq', 'Равно'], ['ne', 'Не равно'], ['contains', 'Содержит'], ['gt', 'Больше'], ['lt', 'Меньше']]); field(panel, 'Значение', d.value, v => { d.value = v; }); }
   if (n.type === 'buttons') {
     field(panel, 'Расположение', d.placement, v => { d.placement = v; }, [['inline', 'Под сообщением'], ['keyboard', 'Нижняя клавиатура']]);
@@ -503,10 +512,10 @@ function renderBehavior(target = main) {
 }
 function renderWelcome() {
   document.title = 'BotForge · Визуальный редактор Telegram-ботов';
-  const header = element('header', 'welcome-header'); const brand = element('a', 'welcome-brand'); brand.href = '/'; const logo = element('img'); logo.src = '/logo.png'; logo.alt = ''; brand.append(logo, document.createTextNode('BotForge'));
+  const header = element('header', 'welcome-header'); const brand = element('a', 'welcome-brand'); brand.href = '/'; const logo = element('img'); logo.src = '/logo.webp'; logo.alt = ''; brand.append(logo, document.createTextNode('BotForge'));
   const links = element('div', 'welcome-header-links'); links.append(button('Возможности', () => document.querySelector('.welcome-steps').scrollIntoView({ block: 'start' }), 'welcome-help')); const signin = element('a', 'button welcome-signin', 'Войти'); signin.href = '/auth/google'; links.append(signin); header.append(brand, links); main.append(header);
-  const hero = element('section', 'welcome-hero'); const copy = element('div', 'welcome-copy'); copy.append(element('span', 'welcome-tag', 'BOTFORGE STUDIO'), element('h1', '', 'Конструктор Telegram-ботов'), element('p', 'welcome-lead', 'Сообщения, команды и условия на одной схеме. Соберите сценарий, проверьте диалог и экспортируйте проект на нужном языке.'));
-  const access = element('div', 'welcome-access'); const login = element('a', 'button welcome-google', 'Войти через Google'); login.href = '/auth/google'; login.append(icon('arrow-up')); access.append(login, element('p', 'welcome-login-note', 'Ваши проекты доступны в личном пространстве.')); copy.append(access); hero.append(copy);
+  const hero = element('section', 'welcome-hero'); const copy = element('div', 'welcome-copy'); copy.append(element('span', 'welcome-tag', 'BOTFORGE STUDIO'), element('h1', '', 'Ваш бот. Ваша логика.'), element('p', 'welcome-lead', 'Соберите Telegram-бота из блоков или опишите задачу ИИ. Проверьте, как он работает, и заберите исходный код.'));
+  const access = element('div', 'welcome-access'); const login = element('a', 'button welcome-google', 'Создать своего бота'); login.href = '/auth/google'; login.append(icon('arrow-up')); access.append(login, element('p', 'welcome-login-note', 'Вход через Google · Проекты в личном пространстве')); copy.append(access); hero.append(copy);
   const preview = element('section', 'welcome-preview'); preview.setAttribute('aria-label', 'Пример интерфейса редактора'); const bar = element('div', 'welcome-preview-bar'); const file = element('span'); file.append(icon('workflow'),document.createTextNode('Запись на консультацию')); bar.append(file,element('span', 'welcome-preview-badge', 'ПРИМЕР ПРОЕКТА')); preview.append(bar);
   const studio=element('div','welcome-studio'); const library=element('aside','welcome-library'); library.append(element('strong','','Блоки'));
   for (const [name,label] of [['play','Старт'],['message-square','Сообщение'],['list','Кнопки'],['text-cursor-input','Ввод данных'],['git-branch','Условие']]) { const row=element('div'); row.append(icon(name),document.createTextNode(label)); library.append(row); }
@@ -515,6 +524,15 @@ function renderWelcome() {
   board.append(element('span','welcome-board-label','Сценарий / Основная ветка'),flow); const zoom=element('span','welcome-zoom','100%'); board.append(zoom); studio.append(board);
   const properties=element('aside','welcome-properties'); properties.append(element('strong','','Свойства блока'),element('span','', 'СООБЩЕНИЕ'),element('p','welcome-property-value','Выберите услугу'),element('span','','СЛЕДУЮЩИЙ БЛОК'),element('p','welcome-property-value','Услуги')); studio.append(properties); preview.append(studio);
   const formats=element('div','welcome-preview-footer'); formats.append(element('span','','Экспорт исходного кода'),element('span','','Python / JavaScript / TypeScript / Go')); preview.append(formats); hero.append(preview); main.append(hero);
+  const demo=element('section','welcome-demo'); demo.setAttribute('aria-label','Рабочий пример вычисления');
+  const demoCopy=element('div'); demoCopy.append(element('span','welcome-tag','ПОПРОБУЙТЕ БЕЗ РЕГИСТРАЦИИ'),element('h2','','Не только сообщения. Действия.'),element('p','','Бот принимает числа, выполняет вычисление и возвращает результат. Этот пример использует тот же движок, что и чат конструктора.'));
+  const form=element('form','welcome-calculator');
+  const values=[];
+  for (const [label,value] of [['Первое число','12'],['Второе число','4']]) { const wrap=element('label'); wrap.append(element('span','',label)); const input=element('input'); input.type='number'; input.step='any'; input.required=true; input.value=value; wrap.append(input); values.push(input); form.append(wrap); }
+  const operationWrap=element('label'); operationWrap.append(element('span','','Операция')); const operation=element('select'); for(const [value,label] of [['add','Сложить +'],['subtract','Вычесть −'],['multiply','Умножить ×'],['divide','Разделить ÷']]) { const option=element('option','',label); option.value=value; operation.append(option); } operationWrap.append(operation); form.append(operationWrap);
+  const submit=element('button','primary','Посчитать'); submit.type='submit'; const output=element('output','welcome-result','Результат появится здесь'); output.setAttribute('aria-live','polite');
+  form.onsubmit=event=>{event.preventDefault(); const a=values[0].valueAsNumber,b=values[1].valueAsNumber; if(!Number.isFinite(a)||!Number.isFinite(b)){output.textContent='Введите конечные числа';return;} const session=new window.BotForgeRuntime.Session({variables:[{name:'a',initial:a},{name:'b',initial:b},{name:'result',initial:0}],behavior:{},nodes:[{id:'calc',type:'calculate',data:{left:'a',right:'b',variable:'result',operation:operation.value}}],edges:[]}); const errors=session.run('calc',Date.now()); output.textContent=errors.length?errors[0].text:'Результат: '+session.values.result;};
+  form.append(submit,output); demo.append(demoCopy,form); main.append(demo);
   const steps=element('section','welcome-steps'); steps.setAttribute('aria-label','Возможности редактора'); for(const [number,title,text] of [['01','Сценарий на доске','Соединяйте блоки и настраивайте переходы между сообщениями.'],['02','Проверка до запуска','Пройдите сценарий в чате: сообщения, кнопки и ввод данных.'],['03','Исходный код','Скачайте ZIP с проектом и инструкцией. Токен бота добавляется при запуске.']]) { const item=element('article'); item.append(element('span','welcome-step-number',number),element('h2','',title),element('p','',text)); steps.append(item); } main.append(steps);
   const bottom=element('footer','welcome-bottom'); bottom.append(element('span','','BotForge — конструктор Telegram-ботов')); const privacy=element('a','','Конфиденциальность'); privacy.href='/privacy'; bottom.append(privacy,element('span','','Вход через Google использует имя и email.')); main.append(bottom);
 }

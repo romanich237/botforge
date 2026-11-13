@@ -26,6 +26,16 @@
         if (['text', 'buttons', 'input'].includes(node.type)) events.push(this.message(d.text, node, now));
         if (node.type === 'input') { this.waiting = node.id; this.deadline = this.behavior.inputTimeout ? now + this.behavior.timeoutSeconds * 1000 : null; break; }
         if (node.type === 'buttons' || node.type === 'end') { this.waiting = null; this.deadline = null; break; }
+        if (node.type === 'calculate') {
+          const operand = value => Object.hasOwn(this.values, value) ? this.values[value] : Number(value);
+          const a = operand(d.left), b = operand(d.right);
+          const result = {add:()=>a+b, subtract:()=>a-b, multiply:()=>a*b, divide:()=>a/b}[d.operation]?.();
+          if (typeof a !== 'number' || typeof b !== 'number' || !Number.isFinite(result)) {
+            this.waiting = null; this.deadline = null;
+            events.push({type:'error',text:'Не удалось вычислить: проверьте числа и деление на ноль.',nodeId:id}); break;
+          }
+          this.values[d.variable] = result;
+        }
         if (node.type === 'condition') {
           const left = this.values[d.variable], right = typeof left === 'number' ? Number(d.value) : d.value;
           const yes = { eq: () => left === right, ne: () => left !== right, contains: () => String(left).includes(String(d.value)), gt: () => left > right, lt: () => left < right }[d.operation]();

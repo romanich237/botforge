@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ReactFlow, Background, Controls, Panel, NodeToolbar, MiniMap, Handle, Position, applyNodeChanges, applyEdgeChanges, MarkerType, SelectionMode, useReactFlow, useNodesInitialized } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-const icons = { start: 'play', command: 'braces', text: 'message-square', buttons: 'list', input: 'text-cursor-input', condition: 'git-branch', end: 'check' };
+const icons = { start: 'play', command: 'braces', text: 'message-square', buttons: 'list', input: 'text-cursor-input', condition: 'git-branch', calculate: 'braces', end: 'check' };
 function ScenarioNode({ data, selected }) {
   return <div className={'scenario-node type-' + data.type + (selected ? ' is-selected' : '') + (data.active ? ' is-active' : '')}>
     <NodeToolbar isVisible={selected} position={Position.Bottom} offset={12} className="graphite-node-toolbar">

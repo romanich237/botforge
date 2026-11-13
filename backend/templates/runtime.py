@@ -72,6 +72,18 @@ class Session:
             if kind in ('buttons', 'end'):
                 self.waiting = self.deadline = None
                 break
+            if kind == 'calculate':
+                try:
+                    a = self.values[d['left']] if d['left'] in self.values else float(d['left'])
+                    b = self.values[d['right']] if d['right'] in self.values else float(d['right'])
+                    result = {'add': lambda: a+b, 'subtract': lambda: a-b, 'multiply': lambda: a*b, 'divide': lambda: a/b}[d['operation']]()
+                    if not math.isfinite(result):
+                        raise ValueError()
+                    self.values[d['variable']] = result
+                except (ValueError, TypeError, KeyError, ZeroDivisionError, OverflowError):
+                    self.waiting = self.deadline = None
+                    events.append(dict(type='error', text='Не удалось вычислить: проверьте числа и деление на ноль.', nodeId=node_id))
+                    break
             if kind == 'condition':
                 left = self.values[d['variable']]
                 right = float(d['value']) if isinstance(left, (int, float)) else d['value']
