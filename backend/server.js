@@ -28,7 +28,7 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, '..
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'");
+    res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");
     try {
       const url = new URL(req.url, 'http://localhost');
       if (await auth.handle(req, res, url)) return;
@@ -110,6 +110,9 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, '..
       else res.end();
     }
   });
+  server.headersTimeout = 15000;
+  server.requestTimeout = 30000;
+  server.maxRequestsPerSocket = 1000;
   server.on('close', () => { storage.close(); auth.close(); });
   return server;
 }

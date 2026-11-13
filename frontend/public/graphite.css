@@ -186,3 +186,31 @@ body.graphite.is-welcome .welcome-steps p { font-size:13px; }
 }
 body.graphite.is-welcome,body.graphite.is-welcome .workspace,body.graphite.is-welcome main { background:#19191f; color:#f0edf5; }
 body.graphite.is-welcome .welcome-demo h2 { color:#f0edf5; }
+/* Keep the workspace canvas on the same surface as its cards and panels. */
+body.graphite .workspace,body.graphite:not(.is-welcome) main { background:#19191f; color:#f0f0f4; }
+body.graphite.is-projects:not(.is-welcome) main { max-width:1440px; margin:0 auto; padding:32px; }
+body.graphite.is-projects .page-heading { align-items:flex-start; gap:24px; flex-wrap:wrap; }
+body.graphite.is-projects .page-heading h1 { color:#f0f0f4; font-size:30px; line-height:1.2; }
+body.graphite.is-projects .page-heading p { color:#aaaabb; }
+body.graphite .project-heading-actions { flex-wrap:wrap; }
+body.graphite .project-heading-actions button { min-height:44px; }
+body.graphite .project-heading-actions .ai-trigger { color:#d7c9f5; background:#302a3c; border-color:#55466c; }
+body.graphite:not(.is-welcome) .project-toolbar { display:grid; grid-template-columns:minmax(0,1fr) minmax(170px,210px) auto; gap:12px; margin:24px 0; }
+body.graphite:not(.is-welcome) .project-toolbar input,body.graphite:not(.is-welcome) .project-toolbar .project-sort { min-width:0; max-width:none; width:100%; min-height:44px; }
+body.graphite .project-count { color:#aaaabb; }
+body.graphite:not(.is-welcome) .project-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr)); gap:20px; }
+body.graphite .project-column { min-width:0; }
+body.graphite .project-card { height:100%; }
+body.graphite .project-card h2 { overflow-wrap:anywhere; }
+body.graphite .project-thumbnail { overflow:hidden; }
+@media(max-width:650px) {
+ body.graphite.is-projects:not(.is-welcome) main { padding:20px 16px; }
+ body.graphite.is-projects .page-heading { gap:16px; }
+ body.graphite.is-projects .page-heading h1 { font-size:26px; }
+ body.graphite .project-heading-actions { width:100%; gap:8px; }
+ body.graphite .project-heading-actions button { flex:1 1 130px; }
+ body.graphite:not(.is-welcome) .project-toolbar { grid-template-columns:minmax(0,1fr) auto; gap:10px; }
+ body.graphite:not(.is-welcome) .project-toolbar input { grid-column:1/-1; }
+ body.graphite:not(.is-welcome) .project-grid { grid-template-columns:minmax(0,1fr); gap:16px; }
+ body.graphite .topbar .account-button { max-width:48vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+}
